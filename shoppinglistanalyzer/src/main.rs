@@ -1,5 +1,9 @@
+mod custom_button;
+
+use gtk4::*;
 use gtk4::prelude::*;
 use gtk4::{glib, Application};
+use std::cell::*;
 
 const APP_ID: &str = "org.gtk_rs.ShoppingListAnalyzer";
 
@@ -14,7 +18,7 @@ fn main() -> glib::ExitCode {
 
 fn build_ui(app: &Application) {
     // Create a button with label and margins
-    let button = gtk4::Button::builder()
+    let button = Button::builder()
         .label("Press me!")
         .margin_top(12)
         .margin_bottom(12)
@@ -22,10 +26,10 @@ fn build_ui(app: &Application) {
         .margin_end(12)
         .build();
 
-    let is_clicked = std::cell::Cell::new(false);
+    let is_clicked = Cell::new(false);
     // Connect to "clicked" signal of `button`
     button.connect_clicked(move |button| {
-        if is_clicked.get() {
+        if !is_clicked.get() {
             button.set_label("Hello World!");
         } else {
             button.set_label("Press me!");
@@ -34,7 +38,7 @@ fn build_ui(app: &Application) {
     });
 
     // Create a window
-    let window = gtk4::ApplicationWindow::builder()
+    let window = ApplicationWindow::builder()
         .application(app)
         .title("Shopping List Analyzer")
         .child(&button)

@@ -1,12 +1,12 @@
 mod imp;
 
 use glib::Object;
-use gtk::glib;
+use gtk4::glib;
 
 glib::wrapper! {
     pub struct CustomButton(ObjectSubclass<imp::CustomButton>)
-        @extends gtk::Button, gtk::Widget,
-        @implements gtk::Accessible, gtk::Actionable, gtk::Buildable, gtk::ConstraintTarget;
+        @extends gtk4::Button, gtk4::Widget,
+        @implements gtk4::Accessible, gtk4::Actionable, gtk4::Buildable, gtk4::ConstraintTarget;
 }
 
 impl CustomButton {

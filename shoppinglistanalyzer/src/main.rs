@@ -3,7 +3,7 @@ mod custom_button;
 use gtk4::*;
 use gtk4::prelude::*;
 use gtk4::{glib, Application};
-use std::cell::*;
+use custom_button::CustomButton;
 
 const APP_ID: &str = "org.gtk_rs.ShoppingListAnalyzer";
 
@@ -17,33 +17,26 @@ fn main() -> glib::ExitCode {
 }
 
 fn build_ui(app: &Application) {
-    // Create a button with label and margins
-    let button = Button::builder()
-        .label("Press me!")
-        .margin_top(12)
-        .margin_bottom(12)
-        .margin_start(12)
-        .margin_end(12)
-        .build();
+    let grid = Grid::new();
 
-    let is_clicked = Cell::new(false);
-    // Connect to "clicked" signal of `button`
-    button.connect_clicked(move |button| {
-        if !is_clicked.get() {
-            button.set_label("Hello World!");
-        } else {
-            button.set_label("Press me!");
-        }
-        is_clicked.set(!is_clicked.get());
-    });
+    let button = CustomButton::with_label("Press me!");
+    button.set_margin_top(12);
+    button.set_margin_bottom(12);
+    button.set_margin_start(12);
+    button.set_margin_end(12);
+    grid.attach(&button, 0, 0, 500, 700);
 
-    // Create a window
+    let switch = Switch::new();
+    switch.set_active(true);
+    grid.attach(&switch, 0, 701, 200, 200);
+
+    let calendar = Calendar::new();
+    grid.attach(&calendar, 0, 901, 500, 500);
+
     let window = ApplicationWindow::builder()
         .application(app)
         .title("Shopping List Analyzer")
-        .child(&button)
+        .child(&grid)
         .build();
-    // Present window
-
     window.present();
 }

@@ -6,15 +6,18 @@
     nixvimConfig.url = "github:Olisnot/NixVimConfig";
   };
 
-  outputs = { self, nixpkgs, nixvimConfig }: 
+  outputs = { self, nixpkgs, nixvimConfig}: 
     let
       system = "x86_64-linux";
       pkgs = nixpkgs.legacyPackages."${system}";
       nvim = nixvimConfig.packages."${system}".default.extend {
-        plugins.lsp.servers.rust_analyzer = {
-          enable = true;
-          installRustc = false;
-          installCargo = false;
+        plugins = {
+          lsp.servers.rust_analyzer = {
+            enable = true;
+            installRustc = false;
+            installCargo = false;
+          };
+          notify.enable = pkgs.lib.mkForce false;
         };
       };
     in

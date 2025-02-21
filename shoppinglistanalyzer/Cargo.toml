@@ -6,7 +6,7 @@ edition = "2021"
 [dependencies]
 gtk4 = "0.9.5"
 polars = "0.46.0"
-polars-sql = "0.46.0"
 ollama-rs = "0.2.4"
 reqwest = "0.12.12"
 charts-rs = "0.3.19"
+sqlite = "0.36.2"

@@ -1,3 +1,6 @@
+#[path = "../../sqlite/mod.rs"]
+mod sqlite;
+
 use gtk4::*;
 use gtk4::prelude::*;
 

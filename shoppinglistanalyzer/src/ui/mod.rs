@@ -4,7 +4,8 @@ mod nutrition_screen;
 
 use gtk4::*;
 use gtk4::prelude::*;
-use gtk4::Application;
+use gtk4::{Application, ApplicationWindow, CssProvider, StyleContext};
+use gtk4::gdk::Display;
 
 struct Notebook {
     notebook: gtk4::Notebook,
@@ -45,5 +46,12 @@ pub fn build_ui(app: &Application) {
         .title("Shopping List Analyzer")
         .child(&notebook.notebook)
         .build();
+
+    let provider = CssProvider::new();
+    provider.load_from_path("./components/style.css");
+
+    let display = Display::default().unwrap();
+    gtk4::style_context_add_provider_for_display(&display, &provider, gtk4::STYLE_PROVIDER_PRIORITY_APPLICATION);
+
     window.present();
 }

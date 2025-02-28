@@ -1,4 +1,5 @@
 use sqlite;
+use sqlite::State;
 
 use std::path::Path;
 
@@ -54,4 +55,18 @@ pub fn insert_item(name: String) {
         INSERT INTO items (Name) VALUES (\"{}\");
         ", name);
     connection.execute(query).unwrap();
+}
+
+pub fn get_items() -> Vec<String>{
+    let mut list = Vec::new();
+    let db_path = get_db_path();
+    let connection = sqlite::open(db_path).unwrap();
+    let query = "
+        SELECT name FROM items
+        ";
+    let mut statement = connection.prepare(query).unwrap();
+    while let Ok(State::Row) = statement.next() {
+        list.push(statement.read::<String, _>("Name").unwrap());
+    }
+    list
 }

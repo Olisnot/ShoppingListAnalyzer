@@ -1,3 +1,6 @@
+#[path = "../data_structures.rs"]
+mod data_structures;
+
 use sqlite;
 use sqlite::State;
 
@@ -23,7 +26,7 @@ pub fn start_database() {
         let query = "
         CREATE TABLE lists (ListId INTEGER PRIMARY KEY AUTOINCREMENT, Date INTEGER, TotalCost REAL);
 
-        CREATE TABLE items (ItemId INTEGER PRIMARY KEY AUTOINCREMENT, Name TEXT);
+        CREATE TABLE items (ItemId INTEGER PRIMARY KEY AUTOINCREMENT, Name TEXT UNIQUE, Category TEXT, Price REAL);
 
         CREATE TABLE listItems (ListId INTEGER, 
             ItemId INTEGER,
@@ -42,19 +45,51 @@ pub fn start_database() {
             Proteins INTEGER,
             Salt INTEGER,
             FOREIGN KEY (ItemId) REFERENCES items(ItemId)
-            );
+        );
         ";
         connection.execute(query).unwrap();
     }
 }
 
-pub fn insert_item(name: String) {
+pub fn store_list(list: data_structures::List) {
     let db_path = get_db_path();
     let connection = sqlite::open(db_path).unwrap();
     let query = format!("
-        INSERT INTO items (Name) VALUES (\"{}\");
-        ", name);
-    connection.execute(query).unwrap();
+        INSERT INTO lists (Date, TotalCost) VALUES ({}, {});
+        ", list.date, list.total_cost);
+        connection.execute(query).unwrap();
+
+    let list_id_query = format!("
+        SELECT ListId FROM lists
+        WHERE date = {} AND TotalCost = {}
+        LIMIT 1;
+        ", list.date, list.total_cost);
+    let list_id = connection.prepare(list_id_query).unwrap().read::<i64, _>("ListId").unwrap();
+
+        for item in list.items.iter() {
+            insert_item(item.clone());
+
+            let item_id_query = format!("
+                SELECT ItemId FROM items
+                WHERE name = {}
+                LIMIT 1;
+                ", item.name);
+            let item_id = connection.prepare(item_id_query).unwrap().read::<i64, _>("ItemId").unwrap();
+
+            let list_item_pair_query = format!("
+                INSERT INTO listItems (ListId, ItemId, Price) VALUES ({}, {}, {});
+                ", list_id, item_id, item.price);
+            connection.execute(list_item_pair_query).unwrap();
+        }
+}
+
+pub fn insert_item(item: data_structures::Item) {
+    let db_path = get_db_path();
+    let connection = sqlite::open(db_path).unwrap();
+    let query = format!("
+        INSERT INTO items (Name, Category, Price) VALUES (\"{}\", \"{}\", {});
+        ", item.name, item.category, item.price);
+        connection.execute(query).unwrap();
 }
 
 pub fn get_items() -> Vec<String>{

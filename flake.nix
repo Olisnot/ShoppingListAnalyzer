@@ -29,6 +29,7 @@
 
         shellHook = ''
         export SHELL=/run/current-system/sw/bin/bash
+        cd shoppinglistanalyzer || cd ..
         '';
       };
     };

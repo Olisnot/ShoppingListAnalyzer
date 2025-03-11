@@ -1,6 +1,10 @@
+#[path = "../sqlite/mod.rs"]
+mod sqlite;
+
 use gtk4::*;
 use gtk4::prelude::*;
 use gtk4::ApplicationWindow;
+use sqlite::data_structures::*;
 use std::cell::RefCell;
 use std::rc::Rc;
 
@@ -32,18 +36,8 @@ pub fn show_add_list_dialog(parent: &ApplicationWindow) {
 
     main_container.append(&scrolled_window);
 
-    let name_label = Label::new(Some("Name"));
-    name_label.set_margin_start(60);
-    let price_label = Label::new(Some("Price"));
-    price_label.set_margin_start(110);
-    let category_label = Label::new(Some("Category"));
-    category_label.set_margin_start(110);
-
-    let label_box = Box::new(Orientation::Horizontal, 15);
-    label_box.append(&name_label);
-    label_box.append(&price_label);
-    label_box.append(&category_label);
-    form_box.append(&label_box);
+    let margin_box = Box::new(Orientation::Horizontal, 15);
+    form_box.append(&margin_box);
     
     let form_box_ref = Rc::new(RefCell::new(form_box));
     let dialog_clone = dialog.clone();
@@ -77,11 +71,13 @@ pub fn show_add_list_dialog(parent: &ApplicationWindow) {
     content_area.append(&main_container);
     
     dialog.add_button("Cancel", gtk4::ResponseType::Cancel);
-    dialog.add_button("Next", gtk4::ResponseType::Accept);
+    dialog.add_button("Submit", gtk4::ResponseType::Accept);
     
-    dialog.connect_response(|dialog, response| {
+    let form_box_ref_clone_2 = Rc::clone(&form_box_ref);
+    dialog.connect_response(move|dialog, response| {
         if response == gtk4::ResponseType::Accept {
             println!("Form submitted!");
+            parse_add_database(&form_box_ref_clone_2.borrow());
         }
         dialog.close();
     });
@@ -116,7 +112,6 @@ fn add_form_row(form_box: &Box, parent_dialog: &Dialog) {
         
         confirm_dialog.connect_response(move |dialog, response| {
             if response == ResponseType::Yes {
-                // Remove this row from the form
                 form_box_clone_inner.remove(&item_box_clone_inner);
             }
             dialog.close();
@@ -129,7 +124,9 @@ fn add_form_row(form_box: &Box, parent_dialog: &Dialog) {
     let price_entry = Entry::new();
     
     name_entry.set_hexpand(true);
+    name_entry.set_placeholder_text(Some("Name"));
     price_entry.set_hexpand(true);
+    price_entry.set_placeholder_text(Some("Price"));
     price_entry.set_input_purpose(gtk4::InputPurpose::Number);
 
     let category_combo = ComboBoxText::new();
@@ -151,4 +148,57 @@ fn add_form_row(form_box: &Box, parent_dialog: &Dialog) {
     item_box.append(&category_combo);
     
     form_box.append(&item_box);
+}
+
+fn parse_add_database(form_box: &Box) {
+    println!("start add to db");
+    let mut items: Vec<Item> = Vec::new();
+
+    let mut name: String = String::new();
+    let mut price: f32 = 0.0;
+    let mut category: String = String::new();
+
+
+    let mut current_child = form_box.first_child();
+    while let Some(child) = current_child {
+        let root_box = child.downcast_ref::<gtk4::Box>().unwrap();
+        let mut inner_current_child = root_box.first_child();
+        while let Some(inner_child) = inner_current_child {
+            let type_info = inner_child.type_();
+            println!("Widget type: {}", type_info.name());
+            if inner_child.is::<gtk4::Entry>() {
+                let entry = inner_child.downcast_ref::<gtk4::Entry>().unwrap();
+                if let Some(placeholder_text) = entry.placeholder_text() {
+                    if  placeholder_text == "Name" {
+                        println!("name");
+                        name = entry.text().to_string();
+                    }
+                    else if placeholder_text == "Price" {
+                        println!("price");
+                        price = entry.text().parse().unwrap();
+                    }
+                }
+            }
+            else if inner_child.is::<gtk4::ComboBoxText>() {
+                let combo = inner_child.downcast_ref::<gtk4::ComboBoxText>().unwrap();
+                if let Some(category_text) = combo.active_text() {
+                    category = category_text.to_string();
+                }
+            }
+            inner_current_child = inner_child.next_sibling();
+        }
+
+        if name != "" && price > 0.0 {
+            let current_item = Item::new(0, name.clone(), category.clone(), price);
+            current_item.print_item();
+            items.push(current_item);
+        }
+
+        current_child = child.next_sibling();
+    }
+
+    items.remove(items.len()-1);
+
+    let the_list: List = List::new(0, items);
+    sqlite::store_list(&the_list);
 }

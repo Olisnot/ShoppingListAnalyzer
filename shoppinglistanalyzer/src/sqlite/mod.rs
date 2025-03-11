@@ -1,8 +1,8 @@
-#[path = "../data_structures.rs"]
-mod data_structures;
+pub mod data_structures;
 
 use sqlite;
 use sqlite::State;
+use data_structures::*;
 
 use std::path::Path;
 
@@ -51,30 +51,40 @@ pub fn start_database() {
     }
 }
 
-pub fn store_list(list: data_structures::List) {
+pub fn store_list(list: &List) {
     let db_path = get_db_path();
     let connection = sqlite::open(db_path).unwrap();
     let query = format!("
         INSERT INTO lists (Date, TotalCost) VALUES ({}, {});
-        ", list.date, list.total_cost);
+        ", list.date, list.get_total_cost());
         connection.execute(query).unwrap();
 
     let list_id_query = format!("
         SELECT ListId FROM lists
         WHERE date = {} AND TotalCost = {}
         LIMIT 1;
-        ", list.date, list.total_cost);
+        ", list.date, list.get_total_cost());
+    println!("{}", list_id_query);
     let list_id = connection.prepare(list_id_query).unwrap().read::<i64, _>("ListId").unwrap();
+    println!("listID: {}", list_id);
 
         for item in list.items.iter() {
+            item.print_item();
             insert_item(item.clone());
 
             let item_id_query = format!("
                 SELECT ItemId FROM items
-                WHERE name = {}
+                WHERE name = \"{}\"
                 LIMIT 1;
                 ", item.name);
-            let item_id = connection.prepare(item_id_query).unwrap().read::<i64, _>("ItemId").unwrap();
+            println!("{}", item_id_query);
+            let mut item_id: i64 = 0;
+            let mut item_id_statement = connection.prepare(item_id_query).unwrap();
+            item_id_statement.bind((0, 1)).unwrap();
+            while let Ok(State::Row) = item_id_statement.next() {
+                item_id = item_id_statement.read::<i64, _>("ItemId").unwrap();
+                println!("item_id = {}", item_id);
+            }
 
             let list_item_pair_query = format!("
                 INSERT INTO listItems (ListId, ItemId, Price) VALUES ({}, {}, {});
@@ -89,7 +99,8 @@ pub fn insert_item(item: data_structures::Item) {
     let query = format!("
         INSERT INTO items (Name, Category, Price) VALUES (\"{}\", \"{}\", {});
         ", item.name, item.category, item.price);
-        connection.execute(query).unwrap();
+    println!("\n---------------\n{}\n----------------", query);
+    connection.execute(query).unwrap();
 }
 
 pub fn get_items() -> Vec<String>{

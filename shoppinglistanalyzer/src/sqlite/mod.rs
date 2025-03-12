@@ -26,11 +26,11 @@ pub fn start_database() {
         let query = "
         CREATE TABLE lists (ListId INTEGER PRIMARY KEY AUTOINCREMENT, Date INTEGER, TotalCost REAL);
 
-        CREATE TABLE items (ItemId INTEGER PRIMARY KEY AUTOINCREMENT, Name TEXT UNIQUE, Category TEXT, Price REAL);
+        CREATE TABLE items (ItemId INTEGER PRIMARY KEY AUTOINCREMENT, Name TEXT UNIQUE, Category TEXT);
 
         CREATE TABLE listItems (ListId INTEGER, 
             ItemId INTEGER,
-            Price INTEGER,
+            Price REAL,
             FOREIGN KEY (ListId) REFERENCES lists(ListId),
             FOREIGN KEY (ItemId) REFERENCES items(ItemId));
 
@@ -55,18 +55,24 @@ pub fn store_list(list: &List) {
     let db_path = get_db_path();
     let connection = sqlite::open(db_path).unwrap();
     let query = format!("
-        INSERT INTO lists (Date, TotalCost) VALUES ({}, {});
-        ", list.date, list.get_total_cost());
+        INSERT INTO lists (Date, TotalCost) VALUES (\"{}\", {});
+        ", list.date_as_string(), list.get_total_cost());
         connection.execute(query).unwrap();
 
-    let list_id_query = format!("
-        SELECT ListId FROM lists
-        WHERE date = {} AND TotalCost = {}
-        LIMIT 1;
-        ", list.date, list.get_total_cost());
-    println!("{}", list_id_query);
-    let list_id = connection.prepare(list_id_query).unwrap().read::<i64, _>("ListId").unwrap();
-    println!("listID: {}", list_id);
+        let list_id_query = format!("
+            SELECT ListId FROM lists
+            ORDER BY ListId DESC
+            LIMIT 1;
+            ");
+        let mut list_id_statement = connection.prepare(list_id_query).expect("Failed to prepare find list id statement");
+        let mut list_id: i64 = 0;
+        if let State::Row = list_id_statement.next().expect("Failed to execute find item ID query") {
+            list_id = list_id_statement.read(0).expect("Failed to read ID");
+            println!("Found list ID: {}", list_id);
+            drop(list_id_statement);
+        } else {
+            println!("List id not found.");
+        }
 
         for item in list.items.iter() {
             item.print_item();
@@ -74,22 +80,26 @@ pub fn store_list(list: &List) {
 
             let item_id_query = format!("
                 SELECT ItemId FROM items
-                WHERE name = \"{}\"
+                WHERE name = ?1
                 LIMIT 1;
-                ", item.name);
-            println!("{}", item_id_query);
-            let mut item_id: i64 = 0;
-            let mut item_id_statement = connection.prepare(item_id_query).unwrap();
-            item_id_statement.bind((0, 1)).unwrap();
-            while let Ok(State::Row) = item_id_statement.next() {
-                item_id = item_id_statement.read::<i64, _>("ItemId").unwrap();
-                println!("item_id = {}", item_id);
-            }
+                ");
+                println!("{}", item_id_query);
+                let mut item_id_statement = connection.prepare(item_id_query).expect("Failed to prepare statement");
+                let item_name: &str = &item.name;
+                item_id_statement.bind((1, item_name)).expect("Failed to bind item id");
 
-            let list_item_pair_query = format!("
-                INSERT INTO listItems (ListId, ItemId, Price) VALUES ({}, {}, {});
-                ", list_id, item_id, item.price);
-            connection.execute(list_item_pair_query).unwrap();
+                let mut item_id: i64 = 0;
+                if let State::Row = item_id_statement.next().expect("Failed to execute find item ID query") {
+                    item_id = item_id_statement.read(0).expect("Failed to read ID");
+                    println!("Found item ID: {}", item_id);
+                } else {
+                    println!("Item not found.");
+                }
+
+                let list_item_pair_query = format!("
+                    INSERT INTO listItems (ListId, ItemId, Price) VALUES ({}, {}, {});
+                    ", list_id, item_id, item.price);
+                    connection.execute(list_item_pair_query).unwrap();
         }
 }
 
@@ -97,10 +107,10 @@ pub fn insert_item(item: data_structures::Item) {
     let db_path = get_db_path();
     let connection = sqlite::open(db_path).unwrap();
     let query = format!("
-        INSERT INTO items (Name, Category, Price) VALUES (\"{}\", \"{}\", {});
-        ", item.name, item.category, item.price);
-    println!("\n---------------\n{}\n----------------", query);
-    connection.execute(query).unwrap();
+        INSERT INTO items (Name, Category) VALUES (\"{}\", \"{}\");
+        ", item.name, item.category);
+        println!("\n---------------\n{}\n----------------", query);
+        connection.execute(query).unwrap();
 }
 
 pub fn get_items() -> Vec<String>{

@@ -8,11 +8,13 @@ use gtk4::prelude::*;
 
 pub fn create_single_list_screen() -> Grid {
     let screen = Grid::new();
-// add list button
-    let add_list_button = higtlighted_button::create_highlighted_button("Add List");
-    screen.attach(&add_list_button, 10, 10, 500, 250);
 
-// list items
+    let list_selector = ComboBoxText::new();
+    for list_date in sqlite::get_lists_dates().iter() {
+        list_selector.append(Some(list_date), list_date);
+    }
+    screen.attach(&list_selector, 0, 0, 500, 700);
+
     let items = sqlite::get_items();
     let text_view = TextView::new();
     text_view.set_editable(false);
@@ -29,6 +31,7 @@ pub fn create_single_list_screen() -> Grid {
     scrolled_window.set_vexpand(true);
     scrolled_window.set_hexpand(true);
     screen.attach(&scrolled_window, 0, 1000, 1000, 1000);
+
 
     screen
 }

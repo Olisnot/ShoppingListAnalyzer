@@ -9,9 +9,10 @@ use std::cell::RefCell;
 use std::rc::Rc;
 
 pub fn show_add_list_dialog(parent: &ApplicationWindow) {
+    let parent_clone = parent.clone();
     let dialog = Dialog::builder()
         .title("Dynamic Form")
-        .transient_for(parent)
+        .transient_for(&parent_clone)
         .modal(true)
         .default_width(580)
         .default_height(800)
@@ -79,6 +80,7 @@ pub fn show_add_list_dialog(parent: &ApplicationWindow) {
             println!("Form submitted!");
             parse_add_database(&form_box_ref_clone_2.borrow());
         }
+        parent_clone.queue_draw();
         dialog.close();
     });
     

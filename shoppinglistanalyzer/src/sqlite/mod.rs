@@ -24,7 +24,7 @@ pub fn start_database() {
 
     if !existing_db {
         let query = "
-        CREATE TABLE lists (ListId INTEGER PRIMARY KEY AUTOINCREMENT, Date INTEGER, TotalCost REAL);
+        CREATE TABLE lists (ListId INTEGER PRIMARY KEY AUTOINCREMENT, Date TEXT, TotalCost REAL);
 
         CREATE TABLE items (ItemId INTEGER PRIMARY KEY AUTOINCREMENT, Name TEXT UNIQUE, Category TEXT);
 
@@ -113,10 +113,27 @@ pub fn insert_item(item: data_structures::Item) {
         connection.execute(query).unwrap();
 }
 
+pub fn get_lists_dates() -> Vec<String> {
+    let mut list = Vec::new();
+    let db_path = get_db_path();
+    let connection = sqlite::open(db_path).unwrap();
+    let query = "
+        SELECT ListId, Date FROM lists
+        ";
+    let mut statement = connection.prepare(query).unwrap();
+    while let Ok(State::Row) = statement.next() {
+        let id = statement.read::<String, _>("ListId").unwrap();
+        let date = statement.read::<String, _>("Date").unwrap();
+        list.push(format!("{} - {}", id, date));
+    }
+    list
+}
+
 pub fn get_items() -> Vec<String>{
     let mut list = Vec::new();
     let db_path = get_db_path();
     let connection = sqlite::open(db_path).unwrap();
+    println!("ISSUE HERE!!!!!");
     let query = "
         SELECT name FROM items
         ";

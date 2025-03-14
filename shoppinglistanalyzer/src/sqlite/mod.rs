@@ -83,7 +83,6 @@ pub fn store_list(list: &List) {
                 WHERE name = ?1
                 LIMIT 1;
                 ");
-                println!("{}", item_id_query);
                 let mut item_id_statement = connection.prepare(item_id_query).expect("Failed to prepare statement");
                 let item_name: &str = &item.name;
                 item_id_statement.bind((1, item_name)).expect("Failed to bind item id");
@@ -91,7 +90,6 @@ pub fn store_list(list: &List) {
                 let mut item_id: i64 = 0;
                 if let State::Row = item_id_statement.next().expect("Failed to execute find item ID query") {
                     item_id = item_id_statement.read(0).expect("Failed to read ID");
-                    println!("Found item ID: {}", item_id);
                 } else {
                     println!("Item not found.");
                 }
@@ -103,14 +101,36 @@ pub fn store_list(list: &List) {
         }
 }
 
-pub fn insert_item(item: data_structures::Item) {
+pub fn insert_item(item: Item) {
     let db_path = get_db_path();
     let connection = sqlite::open(db_path).unwrap();
     let query = format!("
         INSERT INTO items (Name, Category) VALUES (\"{}\", \"{}\");
         ", item.name, item.category);
-        println!("\n---------------\n{}\n----------------", query);
+    if !check_item_exists(item) {
         connection.execute(query).unwrap();
+    }
+}
+
+fn check_item_exists(item: Item) -> bool {
+    let db_path = get_db_path();
+    let connection = sqlite::open(db_path).unwrap();
+    let query = format!("
+        SELECT EXISTS(SELECT Name FROM items WHERE Name = \"{}\");
+        ", item.name);
+    let mut statement = connection.prepare(query).expect("failed to prepare statement");
+    if let State::Row = statement.next().expect("Failed to read") {
+        let result: i64 = statement.read(0).expect("Failed to read");
+        if result == 1 {
+            println!("{} exists", item.name);
+            return true
+        }
+        else {
+            println!("{} does not exist", item.name);
+            return false
+        }
+    }
+    false
 }
 
 pub fn get_lists_dates() -> Vec<String> {
@@ -129,15 +149,18 @@ pub fn get_lists_dates() -> Vec<String> {
     list
 }
 
-pub fn get_items() -> Vec<String>{
+pub fn get_items(list_id: i64) -> Vec<String>{
     let mut list = Vec::new();
     let db_path = get_db_path();
     let connection = sqlite::open(db_path).unwrap();
-    println!("ISSUE HERE!!!!!");
     let query = "
-        SELECT name FROM items
+        SELECT i.*
+        FROM items i
+        INNER JOIN listItems li ON i.ItemId = li.ItemId
+        WHERE li.ListId = ?1;
         ";
     let mut statement = connection.prepare(query).unwrap();
+    statement.bind((1, list_id)).expect("failed to bind list ID in get items");
     while let Ok(State::Row) = statement.next() {
         list.push(statement.read::<String, _>("Name").unwrap());
     }

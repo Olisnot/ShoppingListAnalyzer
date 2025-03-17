@@ -1,10 +1,6 @@
-#[path = "../../sqlite/mod.rs"]
-mod sqlite;
-#[path = "../components/higtlighted_button/mod.rs"]
-mod higtlighted_button;
-
 use gtk4::*;
 use gtk4::prelude::*;
+use crate::sqlite;
 
 pub fn create_single_list_screen() -> Grid {
     let screen = Grid::new();
@@ -46,8 +42,8 @@ pub fn create_single_list_screen() -> Grid {
 fn extract_first_number(s: &str) -> Option<i64> {
     // Find the first sequence of digits in the string
     let number_str = s.chars()
-        .skip_while(|c| !c.is_digit(10))
-        .take_while(|c| c.is_digit(10))
+        .skip_while(|c| !c.is_ascii_digit())
+        .take_while(|c| c.is_ascii_digit())
         .collect::<String>();
     
     // Parse the extracted digits into an i64

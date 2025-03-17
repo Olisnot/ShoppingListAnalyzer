@@ -12,12 +12,7 @@
       pkgs = nixpkgs.legacyPackages."${system}";
       nvim = nixvimConfig.packages."${system}".default.extend {
         plugins = {
-          lsp.servers.rust_analyzer = {
-            enable = true;
-            installRustc = false;
-            installCargo = false;
-          };
-          notify.enable = pkgs.lib.mkForce false;
+          rustaceanvim.enable = true;
         };
       };
     in

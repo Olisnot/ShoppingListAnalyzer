@@ -1,16 +1,14 @@
 pub mod data_structures;
 
-use sqlite;
 use sqlite::State;
 use data_structures::*;
 
 use std::path::Path;
 
 fn get_db_path() -> String {
-    let bpath: String;
-    match  std::env::current_exe() {
-        Ok(exe_path) => bpath = exe_path.display().to_string(),
-        Err(_) => bpath = String::new(),
+    let bpath: String = match  std::env::current_exe() {
+        Ok(exe_path) => exe_path.display().to_string(),
+        Err(_) => String::new(),
     };
     let db_path = bpath.trim_end_matches("shoppinglistanalyzer").to_string() + "database.db";
     db_path
@@ -56,14 +54,14 @@ pub fn store_list(list: &List) {
     let connection = sqlite::open(db_path).unwrap();
     let query = format!("
         INSERT INTO lists (Date, TotalCost) VALUES (\"{}\", {});
-        ", list.date_as_string(), list.get_total_cost());
+        ", list.date, list.get_total_cost());
         connection.execute(query).unwrap();
 
-        let list_id_query = format!("
+        let list_id_query = "
             SELECT ListId FROM lists
             ORDER BY ListId DESC
             LIMIT 1;
-            ");
+            ";
         let mut list_id_statement = connection.prepare(list_id_query).expect("Failed to prepare find list id statement");
         let mut list_id: i64 = 0;
         if let State::Row = list_id_statement.next().expect("Failed to execute find item ID query") {
@@ -78,11 +76,11 @@ pub fn store_list(list: &List) {
             item.print_item();
             insert_item(item.clone());
 
-            let item_id_query = format!("
+            let item_id_query = "
                 SELECT ItemId FROM items
                 WHERE name = ?1
                 LIMIT 1;
-                ");
+                ";
                 let mut item_id_statement = connection.prepare(item_id_query).expect("Failed to prepare statement");
                 let item_name: &str = &item.name;
                 item_id_statement.bind((1, item_name)).expect("Failed to bind item id");

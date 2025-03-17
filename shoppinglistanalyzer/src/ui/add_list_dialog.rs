@@ -1,12 +1,10 @@
-#[path = "../sqlite/mod.rs"]
-mod sqlite;
-
 use gtk4::*;
 use gtk4::prelude::*;
 use gtk4::ApplicationWindow;
 use sqlite::data_structures::*;
 use std::cell::RefCell;
 use std::rc::Rc;
+use crate::sqlite;
 
 pub fn show_add_list_dialog(parent: &ApplicationWindow) {
     let parent_clone = parent.clone();
@@ -23,6 +21,32 @@ pub fn show_add_list_dialog(parent: &ApplicationWindow) {
     content_area.set_spacing(10);
 
     let main_container = Box::new(Orientation::Vertical, 15);
+
+    let date_box = Box::new(Orientation::Vertical, 5);
+    let date_button = Button::with_label("Select date");
+
+    let popover = Popover::new();
+    popover.set_has_arrow(false);
+    popover.set_child(Some(&Calendar::new()));
+
+    popover.set_parent(&date_button);
+    let popover_clone = popover.clone();
+    date_button.connect_clicked(move |_| {
+        popover_clone.popup();
+    });
+
+    let date_button_clone = date_button.clone();
+    let popover_clone2 = popover.clone();
+    if let Some(calendar) = popover.child().and_downcast::<Calendar>() {
+        calendar.connect_day_selected(move |cal| {
+            let date = cal.date();
+            date_button_clone.set_label(&format!("{}-{}-{}", date.year(), date.month(), date.day_of_month()));
+            popover_clone2.popdown();
+        });
+    }
+
+    date_box.append(&date_button);
+    main_container.append(&date_box);
     
     let scrolled_window = ScrolledWindow::new();
     scrolled_window.set_policy(PolicyType::Never, PolicyType::Automatic);
@@ -78,7 +102,8 @@ pub fn show_add_list_dialog(parent: &ApplicationWindow) {
     dialog.connect_response(move|dialog, response| {
         if response == gtk4::ResponseType::Accept {
             println!("Form submitted!");
-            parse_add_database(&form_box_ref_clone_2.borrow());
+            let date_string: String = date_button.label().unwrap().to_string();
+            parse_add_database(&form_box_ref_clone_2.borrow(), date_string);
         }
         parent_clone.queue_draw();
         dialog.close();
@@ -152,7 +177,7 @@ fn add_form_row(form_box: &Box, parent_dialog: &Dialog) {
     form_box.append(&item_box);
 }
 
-fn parse_add_database(form_box: &Box) {
+fn parse_add_database(form_box: &Box, date: String) {
     println!("start add to db");
     let mut items: Vec<Item> = Vec::new();
 
@@ -190,7 +215,7 @@ fn parse_add_database(form_box: &Box) {
             inner_current_child = inner_child.next_sibling();
         }
 
-        if name != "" && price > 0.0 {
+        if !name.is_empty() && price > 0.0 {
             let current_item = Item::new(0, name.clone(), category.clone(), price);
             current_item.print_item();
             items.push(current_item);
@@ -201,6 +226,6 @@ fn parse_add_database(form_box: &Box) {
 
     items.remove(items.len()-1);
 
-    let the_list: List = List::new(0, items);
+    let the_list: List = List::new(0, items, date);
     sqlite::store_list(&the_list);
 }

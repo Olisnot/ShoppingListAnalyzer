@@ -1,5 +1,3 @@
-use chrono;
-
 #[derive(Clone)]
 pub struct Item {
     pub id: i32,
@@ -31,15 +29,15 @@ impl Item {
 
 pub struct List {
     pub id: i32,
-    pub date: chrono::NaiveDate,
+    pub date: String,
     pub items: Vec<Item>,
 }
 
 impl List {
-    pub fn new(identifier: i32, items_vec: Vec<Item>) -> Self{
+    pub fn new(identifier: i32, items_vec: Vec<Item>, date_of_list: String) -> Self{
         Self {
             id: identifier,
-            date: chrono::Local::now().naive_local().into(),
+            date: date_of_list,
             items: items_vec,
         }
     }
@@ -50,9 +48,5 @@ impl List {
             total += item.price;
         }
         total
-    }
-
-    pub fn date_as_string(&self) -> String {
-        self.date.format("%Y-%m-%d").to_string()
     }
 }

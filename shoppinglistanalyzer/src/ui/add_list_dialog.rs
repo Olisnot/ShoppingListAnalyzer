@@ -1,12 +1,12 @@
+use std::rc::Rc;
+use std::cell::RefCell;
 use gtk4::*;
 use gtk4::prelude::*;
 use gtk4::ApplicationWindow;
-use sqlite::data_structures::*;
-use std::cell::RefCell;
-use std::rc::Rc;
 use crate::sqlite;
+use crate::data_structures::*;
 
-pub fn show_add_list_dialog(parent: &ApplicationWindow) {
+pub fn show_add_list_dialog(parent: &ApplicationWindow, grid: Rc<RefCell<Grid>>) {
     let parent_clone = parent.clone();
     let dialog = Dialog::builder()
         .title("Dynamic Form")
@@ -23,15 +23,15 @@ pub fn show_add_list_dialog(parent: &ApplicationWindow) {
     let main_container = Box::new(Orientation::Vertical, 15);
 
     let date_box = Box::new(Orientation::Vertical, 5);
-    let date_button = Button::with_label("Select date");
+    let date_button = Rc::new(RefCell::new(Button::with_label("Select date")));
 
     let popover = Popover::new();
     popover.set_has_arrow(false);
     popover.set_child(Some(&Calendar::new()));
 
-    popover.set_parent(&date_button);
+    popover.set_parent(&*date_button.borrow());
     let popover_clone = popover.clone();
-    date_button.connect_clicked(move |_| {
+    date_button.borrow().connect_clicked(move |_| {
         popover_clone.popup();
     });
 
@@ -40,12 +40,13 @@ pub fn show_add_list_dialog(parent: &ApplicationWindow) {
     if let Some(calendar) = popover.child().and_downcast::<Calendar>() {
         calendar.connect_day_selected(move |cal| {
             let date = cal.date();
-            date_button_clone.set_label(&format!("{}-{}-{}", date.year(), date.month(), date.day_of_month()));
+            date_button_clone.borrow().set_label(&format!("{}-{}-{}", date.year(), date.month(), date.day_of_month()));
+            grid.borrow().queue_draw();
             popover_clone2.popdown();
         });
     }
 
-    date_box.append(&date_button);
+    date_box.append(&*date_button.borrow());
     main_container.append(&date_box);
     
     let scrolled_window = ScrolledWindow::new();
@@ -67,7 +68,7 @@ pub fn show_add_list_dialog(parent: &ApplicationWindow) {
     let form_box_ref = Rc::new(RefCell::new(form_box));
     let dialog_clone = dialog.clone();
     
-    add_form_row(&form_box_ref.borrow(), &dialog_clone);
+    add_form_row(&form_box_ref, &dialog_clone);
     
     let add_button_container = Box::new(Orientation::Horizontal, 0);
     add_button_container.set_hexpand(true);
@@ -86,7 +87,7 @@ pub fn show_add_list_dialog(parent: &ApplicationWindow) {
         let container = button.parent().unwrap();
         form_box_ref_clone.borrow().remove(&container);
 
-        add_form_row(&form_box_ref_clone.borrow(), &dialog_clone);
+        add_form_row(&form_box_ref_clone, &dialog_clone);
 
         form_box_ref_clone.borrow().append(&container);
     });
@@ -102,7 +103,7 @@ pub fn show_add_list_dialog(parent: &ApplicationWindow) {
     dialog.connect_response(move|dialog, response| {
         if response == gtk4::ResponseType::Accept {
             println!("Form submitted!");
-            let date_string: String = date_button.label().unwrap().to_string();
+            let date_string: String = date_button.borrow().label().unwrap().to_string();
             parse_add_database(&form_box_ref_clone_2.borrow(), date_string);
         }
         parent_clone.queue_draw();
@@ -112,16 +113,16 @@ pub fn show_add_list_dialog(parent: &ApplicationWindow) {
     dialog.present();
 }
 
-fn add_form_row(form_box: &Box, parent_dialog: &Dialog) {
-    let item_box = gtk4::Box::new(Orientation::Horizontal, 10);
+fn add_form_row(form_box: &Rc<RefCell<Box>>, parent_dialog: &Dialog) {
+    let item_box = Rc::new(RefCell::new(gtk4::Box::new(Orientation::Horizontal, 10)));
 
     let remove_button = Button::with_label("✕");
     remove_button.set_tooltip_text(Some("Remove this item"));
 
-    let item_box_clone = item_box.clone();
-    let form_box_clone = form_box.clone();
-    
     let parent_dialog_clone = parent_dialog.clone();
+
+    let form_box_clone = Rc::clone(form_box);
+    let item_box_clone = Rc::clone(&item_box);
     
     remove_button.connect_clicked(move |_| {
         let confirm_dialog = MessageDialog::builder()
@@ -134,12 +135,12 @@ fn add_form_row(form_box: &Box, parent_dialog: &Dialog) {
         
         confirm_dialog.set_default_response(ResponseType::No);
         
-        let item_box_clone_inner = item_box_clone.clone();
-        let form_box_clone_inner = form_box_clone.clone();
+        let item_box_clone_inner = Rc::clone(&item_box_clone);
+        let form_box_clone_inner = Rc::clone(&form_box_clone);
         
         confirm_dialog.connect_response(move |dialog, response| {
             if response == ResponseType::Yes {
-                form_box_clone_inner.remove(&item_box_clone_inner);
+                form_box_clone_inner.borrow().remove(&*item_box_clone_inner.borrow());
             }
             dialog.close();
         });
@@ -168,13 +169,13 @@ fn add_form_row(form_box: &Box, parent_dialog: &Dialog) {
     category_combo.append(Some("Miscellaneous"), "Miscellaneous");
     
     category_combo.set_active(Some(0));
-    item_box.append(&remove_button);
+    item_box.borrow().append(&remove_button);
     
-    item_box.append(&name_entry);
-    item_box.append(&price_entry);
-    item_box.append(&category_combo);
+    item_box.borrow().append(&name_entry);
+    item_box.borrow().append(&price_entry);
+    item_box.borrow().append(&category_combo);
     
-    form_box.append(&item_box);
+    form_box.borrow().append(&*item_box.borrow());
 }
 
 fn parse_add_database(form_box: &Box, date: String) {
@@ -182,7 +183,7 @@ fn parse_add_database(form_box: &Box, date: String) {
     let mut items: Vec<Item> = Vec::new();
 
     let mut name: String = String::new();
-    let mut price: f32 = 0.0;
+    let mut price: f64 = 0.0;
     let mut category: String = String::new();
 
 

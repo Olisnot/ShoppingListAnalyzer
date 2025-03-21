@@ -1,3 +1,9 @@
+mod total_list;
+mod category_list;
+mod pie_chart;
+
+use std::rc::Rc;
+use std::cell::RefCell;
 use gtk4::*;
 use gtk4::prelude::*;
 use crate::sqlite;
@@ -15,38 +21,35 @@ pub fn create_single_list_screen() -> Grid {
 
     let list_id: i64 = extract_first_number(&list_selector.active_text().unwrap()).unwrap();
 
-    let text_view = TextView::new();
-    text_view.set_editable(false);
-    let buffer = text_view.buffer();
-    fill_items_text_buffer(list_id, buffer.clone());
-    let scrolled_window = ScrolledWindow::new();
-    scrolled_window.set_child(Some(&text_view));
-    scrolled_window.set_vexpand(true);
-    scrolled_window.set_hexpand(true);
-    screen.attach(&scrolled_window, 0, 1000, 1000, 1000);
+    let store = Rc::new(RefCell::new(ListStore::new(&[String::static_type(), String::static_type(), f64::static_type()])));
 
+    fill_items(list_id, Rc::clone(&store));
 
-    let buffer_clone = buffer.clone();
+    let total_list = Rc::new(RefCell::new(total_list::create_total_list(Rc::clone(&store)))); 
+    let category_list = Rc::new(RefCell::new(category_list::create_category_list(Rc::clone(&store), list_id))); 
+
+    screen.attach(&*total_list.borrow(), 0, 1, 1, 1);
+    screen.attach(&*category_list.borrow(), 0, 2, 1, 1);
+
+    let store_clone = Rc::clone(&store);
     list_selector.connect_changed(move |list|{
-        buffer_clone.set_text("");
+        store_clone.borrow_mut().clear();
         let list_id = extract_first_number(&list.active_text().unwrap()).unwrap();
-        fill_items_text_buffer(list_id, buffer_clone.clone());
+        fill_items(list_id, store_clone.clone());
     });
 
-    screen.attach(&list_selector, 0, 0, 500, 300);
+    screen.attach(&list_selector, 0, 0, 1, 1);
 
 
     screen
 }
 
 fn extract_first_number(s: &str) -> Option<i64> {
-    // Find the first sequence of digits in the string
     let number_str = s.chars()
         .skip_while(|c| !c.is_ascii_digit())
         .take_while(|c| c.is_ascii_digit())
         .collect::<String>();
     
-    // Parse the extracted digits into an i64
     if number_str.is_empty() {
         None
     } else {
@@ -54,15 +57,18 @@ fn extract_first_number(s: &str) -> Option<i64> {
     }
 }
 
-fn fill_items_text_buffer(list_id: i64, buffer: TextBuffer) {
+fn fill_items(list_id: i64, store: Rc<RefCell<ListStore>>) {
     let items = sqlite::get_items(list_id);
     let text_view = TextView::new();
     text_view.set_editable(false);
-    let mut end = buffer.end_iter();
-    for (i, string) in items.iter().enumerate() {
-        if i > 0 {
-            buffer.insert(&mut end, "\n");
-        }
-        buffer.insert(&mut end, string);
+    for item in items.iter() {
+        add_row(Rc::clone(&store), &item.name, &item.category, item.price);
     }
+}
+
+fn add_row(store: Rc<RefCell<ListStore>>, name: &str, category: &str, price: f64) {
+    let iter = store.borrow_mut().append();
+    store.borrow_mut().set_value(&iter, 0, &name.to_value());
+    store.borrow_mut().set_value(&iter, 1, &category.to_value());
+    store.borrow_mut().set_value(&iter, 2, &price.to_value());
 }

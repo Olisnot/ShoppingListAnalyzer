@@ -1,9 +1,7 @@
-pub mod data_structures;
-
 use sqlite::State;
-use data_structures::*;
+use crate::data_structures::*;
 
-use std::path::Path;
+use std::{cell::RefCell, path::Path, rc::Rc};
 
 fn get_db_path() -> String {
     let bpath: String = match  std::env::current_exe() {
@@ -74,7 +72,7 @@ pub fn store_list(list: &List) {
 
         for item in list.items.iter() {
             item.print_item();
-            insert_item(item.clone());
+            insert_item(item);
 
             let item_id_query = "
                 SELECT ItemId FROM items
@@ -99,32 +97,33 @@ pub fn store_list(list: &List) {
         }
 }
 
-pub fn insert_item(item: Item) {
+pub fn insert_item(item: &Item) {
+    let item_rc = Rc::new(RefCell::new(item));
     let db_path = get_db_path();
     let connection = sqlite::open(db_path).unwrap();
     let query = format!("
         INSERT INTO items (Name, Category) VALUES (\"{}\", \"{}\");
         ", item.name, item.category);
-    if !check_item_exists(item) {
+    if !check_item_exists(Rc::clone(&item_rc)) {
         connection.execute(query).unwrap();
     }
 }
 
-fn check_item_exists(item: Item) -> bool {
+fn check_item_exists(item: Rc<RefCell<&Item>>) -> bool {
     let db_path = get_db_path();
     let connection = sqlite::open(db_path).unwrap();
     let query = format!("
         SELECT EXISTS(SELECT Name FROM items WHERE Name = \"{}\");
-        ", item.name);
+        ", item.borrow_mut().name);
     let mut statement = connection.prepare(query).expect("failed to prepare statement");
     if let State::Row = statement.next().expect("Failed to read") {
         let result: i64 = statement.read(0).expect("Failed to read");
         if result == 1 {
-            println!("{} exists", item.name);
+            println!("{} exists", item.borrow_mut().name);
             return true
         }
         else {
-            println!("{} does not exist", item.name);
+            println!("{} does not exist", item.borrow_mut().name);
             return false
         }
     }
@@ -147,12 +146,12 @@ pub fn get_lists_dates() -> Vec<String> {
     list
 }
 
-pub fn get_items(list_id: i64) -> Vec<String>{
+pub fn get_items(list_id: i64) -> Vec<Item>{
     let mut list = Vec::new();
     let db_path = get_db_path();
     let connection = sqlite::open(db_path).unwrap();
     let query = "
-        SELECT i.*
+        SELECT i.*, li.price
         FROM items i
         INNER JOIN listItems li ON i.ItemId = li.ItemId
         WHERE li.ListId = ?1;
@@ -160,7 +159,11 @@ pub fn get_items(list_id: i64) -> Vec<String>{
     let mut statement = connection.prepare(query).unwrap();
     statement.bind((1, list_id)).expect("failed to bind list ID in get items");
     while let Ok(State::Row) = statement.next() {
-        list.push(statement.read::<String, _>("Name").unwrap());
+        let id = statement.read::<i64, _>("ItemId").unwrap();
+        let name = statement.read::<String, _>("Name").unwrap();
+        let category = statement.read::<String, _>("Category").unwrap();
+        let price = statement.read::<f64, _>("Price").unwrap();
+        list.push(Item::new(id, name, category, price));
     }
     list
 }

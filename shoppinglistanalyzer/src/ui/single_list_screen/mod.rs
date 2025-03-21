@@ -17,7 +17,9 @@ pub fn create_single_list_screen() -> Grid {
         list_selector.append(Some(list_date), list_date);
     }
     let length: u32 = lists.len().try_into().unwrap();
-    list_selector.set_active(Some(length-1));
+    if !lists.is_empty() {
+        list_selector.set_active(Some(length-1));
+    }
 
     let list_id: i64 = extract_first_number(&list_selector.active_text().unwrap()).unwrap();
 

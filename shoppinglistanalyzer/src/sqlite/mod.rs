@@ -1,85 +1,93 @@
 use sqlite::State;
 use crate::data_structures::*;
-
 use std::{cell::RefCell, path::Path, rc::Rc};
 
-fn get_db_path() -> String {
-    let bpath: String = match  std::env::current_exe() {
-        Ok(exe_path) => exe_path.display().to_string(),
-        Err(_) => String::new(),
-    };
-    let db_path = bpath.trim_end_matches("shoppinglistanalyzer").to_string() + "database.db";
-    db_path
+pub struct Database {
+    path: String,
+    connection: sqlite::Connection,
 }
 
-pub fn start_database() {
-    let db_path = get_db_path();
-    let existing_db = Path::new(&db_path).exists();
-
-    let connection = sqlite::open(db_path).unwrap();
-
-    if !existing_db {
-        let query = "
-        CREATE TABLE lists (ListId INTEGER PRIMARY KEY AUTOINCREMENT, Date TEXT, TotalCost REAL);
-
-        CREATE TABLE items (ItemId INTEGER PRIMARY KEY AUTOINCREMENT, Name TEXT UNIQUE, Category TEXT);
-
-        CREATE TABLE listItems (ListId INTEGER, 
-            ItemId INTEGER,
-            Price REAL,
-            FOREIGN KEY (ListId) REFERENCES lists(ListId),
-            FOREIGN KEY (ItemId) REFERENCES items(ItemId));
-
-        CREATE TABLE nutrition (ItemId INTEGER PRIMARY KEY, 
-            Nutriscore TEXT,
-            Energy INTEGER,
-            Fat INTEGER,
-            SaturatedFats INTEGER,
-            Carbohydrates INTEGER,
-            Sugar INTEGER,
-            Fiber INTEGER,
-            Proteins INTEGER,
-            Salt INTEGER,
-            FOREIGN KEY (ItemId) REFERENCES items(ItemId)
-        );
-        ";
-        connection.execute(query).unwrap();
-    }
-}
-
-pub fn store_list(list: &List) {
-    let db_path = get_db_path();
-    let connection = sqlite::open(db_path).unwrap();
-    let query = format!("
-        INSERT INTO lists (Date, TotalCost) VALUES (\"{}\", {});
-        ", list.date, list.get_total_cost());
-        connection.execute(query).unwrap();
-
-        let list_id_query = "
-            SELECT ListId FROM lists
-            ORDER BY ListId DESC
-            LIMIT 1;
-            ";
-        let mut list_id_statement = connection.prepare(list_id_query).expect("Failed to prepare find list id statement");
-        let mut list_id: i64 = 0;
-        if let State::Row = list_id_statement.next().expect("Failed to execute find item ID query") {
-            list_id = list_id_statement.read(0).expect("Failed to read ID");
-            println!("Found list ID: {}", list_id);
-            drop(list_id_statement);
-        } else {
-            println!("List id not found.");
+impl Database {
+    pub fn new() -> Self {
+        let db_path = Self::get_db_path();
+        Self {
+            path: db_path.to_string(),
+            connection: sqlite::open(db_path).unwrap()
         }
+    }
 
-        for item in list.items.iter() {
-            item.print_item();
-            insert_item(item);
+    fn get_db_path() -> String {
+        let bpath: String = match  std::env::current_exe() {
+            Ok(exe_path) => exe_path.display().to_string(),
+            Err(_) => String::new(),
+        };
+        let db_path = bpath.trim_end_matches("shoppinglistanalyzer").to_string() + "database.db";
+        db_path
+    }
 
-            let item_id_query = "
-                SELECT ItemId FROM items
-                WHERE name = ?1
+    pub fn start_database(&self) {
+        let existing_db = Path::new(&self.path).exists();
+
+        if !existing_db {
+            let query = "
+                CREATE TABLE lists (ListId INTEGER PRIMARY KEY AUTOINCREMENT, Date TEXT, TotalCost REAL);
+
+            CREATE TABLE items (ItemId INTEGER PRIMARY KEY AUTOINCREMENT, Name TEXT UNIQUE, Category TEXT);
+
+            CREATE TABLE listItems (ListId INTEGER, 
+                ItemId INTEGER,
+                Price REAL,
+                FOREIGN KEY (ListId) REFERENCES lists(ListId),
+                FOREIGN KEY (ItemId) REFERENCES items(ItemId));
+
+            CREATE TABLE nutrition (ItemId INTEGER PRIMARY KEY, 
+                Nutriscore TEXT,
+                Energy INTEGER,
+                Fat INTEGER,
+                SaturatedFats INTEGER,
+                Carbohydrates INTEGER,
+                Sugar INTEGER,
+                Fiber INTEGER,
+                Proteins INTEGER,
+                Salt INTEGER,
+                FOREIGN KEY (ItemId) REFERENCES items(ItemId)
+            );
+            ";
+            self.connection.execute(query).unwrap();
+        }
+    }
+
+    pub fn store_list(&self, list: &List) {
+        let query = format!("
+            INSERT INTO lists (Date, TotalCost) VALUES (\"{}\", {});
+            ", list.date, list.get_total_cost());
+            self.connection.execute(query).unwrap();
+
+            let list_id_query = "
+                SELECT ListId FROM lists
+                ORDER BY ListId DESC
                 LIMIT 1;
+            ";
+            let mut list_id_statement = self.connection.prepare(list_id_query).expect("Failed to prepare find list id statement");
+            let mut list_id: i64 = 0;
+            if let State::Row = list_id_statement.next().expect("Failed to execute find item ID query") {
+                list_id = list_id_statement.read(0).expect("Failed to read ID");
+                println!("Found list ID: {}", list_id);
+                drop(list_id_statement);
+            } else {
+                println!("List id not found.");
+            }
+
+            for item in list.items.iter() {
+                item.print_item();
+                self.insert_item(item);
+
+                let item_id_query = "
+                    SELECT ItemId FROM items
+                    WHERE name = ?1
+                    LIMIT 1;
                 ";
-                let mut item_id_statement = connection.prepare(item_id_query).expect("Failed to prepare statement");
+                let mut item_id_statement = self.connection.prepare(item_id_query).expect("Failed to prepare statement");
                 let item_name: &str = &item.name;
                 item_id_statement.bind((1, item_name)).expect("Failed to bind item id");
 
@@ -93,77 +101,71 @@ pub fn store_list(list: &List) {
                 let list_item_pair_query = format!("
                     INSERT INTO listItems (ListId, ItemId, Price) VALUES ({}, {}, {});
                     ", list_id, item_id, item.price);
-                    connection.execute(list_item_pair_query).unwrap();
-        }
-}
-
-pub fn insert_item(item: &Item) {
-    let item_rc = Rc::new(RefCell::new(item));
-    let db_path = get_db_path();
-    let connection = sqlite::open(db_path).unwrap();
-    let query = format!("
-        INSERT INTO items (Name, Category) VALUES (\"{}\", \"{}\");
-        ", item.name, item.category);
-    if !check_item_exists(Rc::clone(&item_rc)) {
-        connection.execute(query).unwrap();
+                    self.connection.execute(list_item_pair_query).unwrap();
+            }
     }
-}
 
-fn check_item_exists(item: Rc<RefCell<&Item>>) -> bool {
-    let db_path = get_db_path();
-    let connection = sqlite::open(db_path).unwrap();
-    let query = format!("
-        SELECT EXISTS(SELECT Name FROM items WHERE Name = \"{}\");
-        ", item.borrow_mut().name);
-    let mut statement = connection.prepare(query).expect("failed to prepare statement");
-    if let State::Row = statement.next().expect("Failed to read") {
-        let result: i64 = statement.read(0).expect("Failed to read");
-        if result == 1 {
-            println!("{} exists", item.borrow_mut().name);
-            return true
-        }
-        else {
-            println!("{} does not exist", item.borrow_mut().name);
-            return false
-        }
+    pub fn insert_item(&self, item: &Item) {
+        let item_rc = Rc::new(RefCell::new(item));
+        let query = format!("
+            INSERT INTO items (Name, Category) VALUES (\"{}\", \"{}\");
+            ", item.name, item.category);
+            if !self.check_item_exists(Rc::clone(&item_rc)) {
+                self.connection.execute(query).expect("query failed for inserting item");
+                println!("query has executed correctly");
+            }
     }
-    false
-}
 
-pub fn get_lists_dates() -> Vec<String> {
-    let mut list = Vec::new();
-    let db_path = get_db_path();
-    let connection = sqlite::open(db_path).unwrap();
-    let query = "
-        SELECT ListId, Date FROM lists
+    fn check_item_exists(&self, item: Rc<RefCell<&Item>>) -> bool {
+        let query = format!("
+            SELECT EXISTS(SELECT Name FROM items WHERE Name = \"{}\");
+            ", item.borrow_mut().name);
+            let mut statement = self.connection.prepare(query).expect("failed to prepare statement");
+            if let State::Row = statement.next().expect("Failed to read") {
+                let result: i64 = statement.read(0).expect("Failed to read");
+                if result == 1 {
+                    println!("{} exists", item.borrow_mut().name);
+                    return true
+                }
+                else {
+                    println!("{} does not exist", item.borrow_mut().name);
+                    return false
+                }
+            }
+            false
+    }
+
+    pub fn get_lists_dates(&self) -> Vec<String> {
+        let mut list = Vec::new();
+        let query = "
+            SELECT ListId, Date FROM lists
+            ";
+        let mut statement = self.connection.prepare(query).unwrap();
+        while let Ok(State::Row) = statement.next() {
+            let id = statement.read::<String, _>("ListId").unwrap();
+            let date = statement.read::<String, _>("Date").unwrap();
+            list.push(format!("{} - {}", id, date));
+        }
+        list
+    }
+
+    pub fn get_items(&self, list_id: i64) -> Vec<Item>{
+        let mut list = Vec::new();
+        let query = "
+            SELECT i.*, li.price
+            FROM items i
+            INNER JOIN listItems li ON i.ItemId = li.ItemId
+            WHERE li.ListId = ?1;
         ";
-    let mut statement = connection.prepare(query).unwrap();
-    while let Ok(State::Row) = statement.next() {
-        let id = statement.read::<String, _>("ListId").unwrap();
-        let date = statement.read::<String, _>("Date").unwrap();
-        list.push(format!("{} - {}", id, date));
+        let mut statement = self.connection.prepare(query).unwrap();
+        statement.bind((1, list_id)).expect("failed to bind list ID in get items");
+        while let Ok(State::Row) = statement.next() {
+            let id = statement.read::<i64, _>("ItemId").unwrap();
+            let name = statement.read::<String, _>("Name").unwrap();
+            let category = statement.read::<String, _>("Category").unwrap();
+            let price = statement.read::<f64, _>("Price").unwrap();
+            list.push(Item::new(id, name, category, price));
+        }
+        list
     }
-    list
-}
-
-pub fn get_items(list_id: i64) -> Vec<Item>{
-    let mut list = Vec::new();
-    let db_path = get_db_path();
-    let connection = sqlite::open(db_path).unwrap();
-    let query = "
-        SELECT i.*, li.price
-        FROM items i
-        INNER JOIN listItems li ON i.ItemId = li.ItemId
-        WHERE li.ListId = ?1;
-        ";
-    let mut statement = connection.prepare(query).unwrap();
-    statement.bind((1, list_id)).expect("failed to bind list ID in get items");
-    while let Ok(State::Row) = statement.next() {
-        let id = statement.read::<i64, _>("ItemId").unwrap();
-        let name = statement.read::<String, _>("Name").unwrap();
-        let category = statement.read::<String, _>("Category").unwrap();
-        let price = statement.read::<f64, _>("Price").unwrap();
-        list.push(Item::new(id, name, category, price));
-    }
-    list
 }

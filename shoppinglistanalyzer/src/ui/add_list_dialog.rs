@@ -3,10 +3,11 @@ use std::cell::RefCell;
 use gtk4::*;
 use gtk4::prelude::*;
 use gtk4::ApplicationWindow;
-use crate::sqlite;
+use crate::sqlite::Database;
 use crate::data_structures::*;
+use super::single_list_screen::SingleList;
 
-pub fn show_add_list_dialog(parent: &ApplicationWindow, grid: Rc<RefCell<Grid>>) {
+pub fn show_add_list_dialog(parent: &ApplicationWindow, database: Rc<RefCell<Database>>, single_list: Rc<RefCell<SingleList>>) {
     let parent_clone = parent.clone();
     let dialog = Dialog::builder()
         .title("Dynamic Form")
@@ -16,6 +17,9 @@ pub fn show_add_list_dialog(parent: &ApplicationWindow, grid: Rc<RefCell<Grid>>)
         .default_height(800)
         .build();
     
+    dialog.add_button("Cancel", gtk4::ResponseType::Cancel);
+    dialog.add_button("Submit", gtk4::ResponseType::Accept);
+
     let content_area = dialog.content_area();
     content_area.set_margin_end(20);
     content_area.set_spacing(10);
@@ -25,9 +29,13 @@ pub fn show_add_list_dialog(parent: &ApplicationWindow, grid: Rc<RefCell<Grid>>)
     let date_box = Box::new(Orientation::Vertical, 5);
     let date_button = Rc::new(RefCell::new(Button::with_label("Select date")));
 
+    let calendar = Calendar::new();
+    let date = calendar.date();
+    date_button.borrow().set_label(&format!("{}-{}-{}", date.day_of_month(), date.month(), date.year()));
+
     let popover = Popover::new();
     popover.set_has_arrow(false);
-    popover.set_child(Some(&Calendar::new()));
+    popover.set_child(Some(&calendar));
 
     popover.set_parent(&*date_button.borrow());
     let popover_clone = popover.clone();
@@ -40,8 +48,7 @@ pub fn show_add_list_dialog(parent: &ApplicationWindow, grid: Rc<RefCell<Grid>>)
     if let Some(calendar) = popover.child().and_downcast::<Calendar>() {
         calendar.connect_day_selected(move |cal| {
             let date = cal.date();
-            date_button_clone.borrow().set_label(&format!("{}-{}-{}", date.year(), date.month(), date.day_of_month()));
-            grid.borrow().queue_draw();
+            date_button_clone.borrow().set_label(&format!("{}-{}-{}", date.day_of_month(), date.month(), date.year()));
             popover_clone2.popdown();
         });
     }
@@ -96,15 +103,15 @@ pub fn show_add_list_dialog(parent: &ApplicationWindow, grid: Rc<RefCell<Grid>>)
 
     content_area.append(&main_container);
     
-    dialog.add_button("Cancel", gtk4::ResponseType::Cancel);
-    dialog.add_button("Submit", gtk4::ResponseType::Accept);
-    
     let form_box_ref_clone_2 = Rc::clone(&form_box_ref);
+    let database_clone = Rc::clone(&database);
+    let single_list_clone = Rc::clone(&single_list);
     dialog.connect_response(move|dialog, response| {
         if response == gtk4::ResponseType::Accept {
             println!("Form submitted!");
             let date_string: String = date_button.borrow().label().unwrap().to_string();
-            parse_add_database(&form_box_ref_clone_2.borrow(), date_string);
+            parse_add_database(Rc::clone(&database_clone), &form_box_ref_clone_2.borrow(), date_string);
+            //single_list_clone.borrow().refresh_selector();
         }
         parent_clone.queue_draw();
         dialog.close();
@@ -178,7 +185,7 @@ fn add_form_row(form_box: &Rc<RefCell<Box>>, parent_dialog: &Dialog) {
     form_box.borrow().append(&*item_box.borrow());
 }
 
-fn parse_add_database(form_box: &Box, date: String) {
+fn parse_add_database(database: Rc<RefCell<Database>>, form_box: &Box, date: String) {
     println!("start add to db");
     let mut items: Vec<Item> = Vec::new();
 
@@ -228,5 +235,6 @@ fn parse_add_database(form_box: &Box, date: String) {
     items.remove(items.len()-1);
 
     let the_list: List = List::new(0, items, date);
-    sqlite::store_list(&the_list);
+    database.borrow().store_list(&the_list);
+
 }

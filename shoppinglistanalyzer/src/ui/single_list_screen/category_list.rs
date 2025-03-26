@@ -2,7 +2,6 @@ use std::rc::Rc;
 use std::cell::RefCell;
 use gtk4::*;
 use gtk4::prelude::*;
-use polars::prelude::Label;
 
 enum Categories {
     Protein,
@@ -30,7 +29,7 @@ impl Categories {
     }
 }
 
-pub fn create_category_list(store: Rc<RefCell<ListStore>>, list_id: i64) -> Box {
+pub fn create_category_list(store: Rc<RefCell<ListStore>>) -> Box {
     let stack = Stack::new();
     let switcher = StackSwitcher::new();
     switcher.set_stack(Some(&stack));
@@ -100,7 +99,7 @@ fn create_tree_view(store: Rc<RefCell<ListStore>>, category_filter: String) -> B
         false 
     });
 
-    let total_label = gtk4::Label::new(Some(&("Total: ".to_string() + &total.to_string())));
+    let total_label = gtk4::Label::new(Some(&format!("Total: {:.2}", total)));
     total_label.set_halign(Align::Start);
     tree_box.append(&total_label);
 

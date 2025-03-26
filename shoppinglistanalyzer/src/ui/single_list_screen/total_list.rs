@@ -4,8 +4,20 @@ use gtk4::*;
 use gtk4::prelude::*;
 
 pub fn create_total_list(store: Rc<RefCell<ListStore>>) -> Box {
+    let mut total: f64 = 0.0;
+    store.borrow().foreach(|_model, _path, iter| {
+        let value = store.borrow().get::<f64>(iter, 2);
+        total += value;
+        false 
+    });
+
+    let total_label = Rc::new(RefCell::new(Label::new(Some(&format!("Total: {:.2}", total)))));
+    total_label.borrow().set_halign(Align::Start);
+
+    let sort_model = TreeModelSort::with_model(&*store.borrow());
+
     let tree_view = TreeView::new();
-    tree_view.set_model(Some(&*store.borrow_mut()));
+    tree_view.set_model(Some(&sort_model));
 
     let columns = ["Name", "Category", "Price"];
     for (i, title) in columns.iter().enumerate() {
@@ -17,6 +29,8 @@ pub fn create_total_list(store: Rc<RefCell<ListStore>>) -> Box {
         tree_view.append_column(&column);
     }
 
+    sort_model.set_sort_column_id(SortColumn::Index(2), SortType::Descending);
+
     let scrolled_window = ScrolledWindow::new();
     scrolled_window.set_child(Some(&tree_view));
     scrolled_window.set_vexpand(true);
@@ -25,6 +39,7 @@ pub fn create_total_list(store: Rc<RefCell<ListStore>>) -> Box {
     let list_box = Box::new(Orientation::Vertical, 15);
     list_box.set_vexpand(true);
     list_box.set_hexpand(true);
+    list_box.append(&*total_label.borrow());
     list_box.append(&scrolled_window);
     list_box
 }

@@ -10,8 +10,8 @@ use crate::sqlite::Database;
 
 pub struct SingleList {
     pub list_selector: ComboBoxText,
-    pub total_list: Box,
-    pub category_list: Box,
+    pub total_list: Option<Box>,
+    pub category_list: Option<Box>,
     store: Rc<RefCell<ListStore>>,
     database: Rc<RefCell<Database>>,
     self_ref: Option<Rc<RefCell<SingleList>>>,
@@ -23,8 +23,8 @@ impl SingleList {
         let list = Rc::new(RefCell::new(SingleList {
             store: Rc::clone(&store),
             list_selector: ComboBoxText::new(),
-            total_list: total_list::create_total_list(Rc::clone(&store)),
-            category_list: category_list::create_category_list(Rc::clone(&store)),
+            total_list: None,
+            category_list: None,
             database: db,
             self_ref: None,
         }));
@@ -33,7 +33,7 @@ impl SingleList {
         list
     }
 
-    pub fn create_single_list_screen(&self) -> Grid {
+    pub fn create_single_list_screen(&mut self) -> Grid {
         let screen = Grid::new();
 
         let lists = self.database.borrow().get_lists_dates();
@@ -51,8 +51,11 @@ impl SingleList {
 
         self.fill_items(list_id, Rc::clone(&self.store));
 
-        screen.attach(&self.total_list, 0, 1, 1, 1);
-        screen.attach(&self.category_list, 0, 2, 1, 1);
+        self.total_list = Some(total_list::create_total_list(Rc::clone(&self.store))); 
+        self.category_list = Some(category_list::create_category_list(Rc::clone(&self.store)));
+
+        screen.attach(self.total_list.as_ref().unwrap(), 0, 1, 1, 1);
+        screen.attach(self.category_list.as_ref().unwrap(), 0, 2, 2, 2);
 
         let store_clone = Rc::clone(&self.store);
         let self_rc = self.self_ref.as_ref().unwrap().clone();

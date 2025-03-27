@@ -2,6 +2,7 @@ use std::rc::Rc;
 use std::cell::RefCell;
 use gtk4::*;
 use gtk4::prelude::*;
+use crate::ui::single_list_screen::pie_chart;
 
 pub fn create_total_list(store: Rc<RefCell<ListStore>>) -> Box {
     let mut total: f64 = 0.0;
@@ -31,15 +32,23 @@ pub fn create_total_list(store: Rc<RefCell<ListStore>>) -> Box {
 
     sort_model.set_sort_column_id(SortColumn::Index(2), SortType::Descending);
 
+
     let scrolled_window = ScrolledWindow::new();
     scrolled_window.set_child(Some(&tree_view));
     scrolled_window.set_vexpand(true);
     scrolled_window.set_hexpand(true);
 
+    let pie = pie_chart::draw(store);
+    let list_pie_box = Box::new(Orientation::Horizontal, 15);
+    list_pie_box.append(&scrolled_window);
+    list_pie_box.append(&pie);
+    list_pie_box.set_vexpand(true);
+    list_pie_box.set_hexpand(true);
+
     let list_box = Box::new(Orientation::Vertical, 15);
     list_box.set_vexpand(true);
     list_box.set_hexpand(true);
     list_box.append(&*total_label.borrow());
-    list_box.append(&scrolled_window);
+    list_box.append(&list_pie_box);
     list_box
 }

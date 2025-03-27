@@ -3,10 +3,15 @@ name = "shoppinglistanalyzer"
 version = "0.1.0"
 edition = "2021"
 
+[features]
+
 [dependencies]
 gtk4 = "0.9.5"
 polars = "0.46.0"
 ollama-rs = "0.2.4"
 reqwest = "0.12.12"
-charts-rs = "0.3.19"
 sqlite = "0.36.2"
+charming = { version = "0.4", features = ["ssr"] }
+gdk-pixbuf = "0.20.9"
+rsvg = "0.4.0"
+cairo-rs = "0.20.7"

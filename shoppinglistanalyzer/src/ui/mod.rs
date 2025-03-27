@@ -32,7 +32,7 @@ pub fn build_ui(app: &Application) {
     }
 
     let single_list = single_list_screen::SingleList::new(database.clone());
-    let single_list_grid = single_list.borrow().create_single_list_screen();
+    let single_list_grid = single_list.borrow_mut().create_single_list_screen();
     let multi_list = multi_list_screen::create_multi_list_screen();
     let nutrition_screen = nutrition_screen::create_nutrition_screen();
 

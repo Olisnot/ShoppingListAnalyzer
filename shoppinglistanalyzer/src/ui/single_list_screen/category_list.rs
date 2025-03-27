@@ -2,32 +2,7 @@ use std::rc::Rc;
 use std::cell::RefCell;
 use gtk4::*;
 use gtk4::prelude::*;
-
-enum Categories {
-    Protein,
-    FruitsVegetables,
-    Dairy,
-    Carbohydrates,
-    FatsOils,
-    Unhealthy,
-    Hygiene,
-    Misc,
-}
-
-impl Categories {
-    fn to_cat_string(&self) -> String {
-        match self {
-            Categories::Protein => "Protein".to_string(),
-            Categories::FruitsVegetables => "Fruit/Vegetable".to_string(),
-            Categories::Dairy => "Dairy".to_string(),
-            Categories::Carbohydrates => "Carbohydrate".to_string(),
-            Categories::FatsOils => "Fat/Oil".to_string(),
-            Categories::Unhealthy => "Unhealthy".to_string(),
-            Categories::Hygiene => "Hygiene".to_string(),
-            Categories::Misc => "Miscellaneous".to_string()
-        }
-    }
-}
+use crate::data_structures::Categories;
 
 pub fn create_category_list(store: Rc<RefCell<ListStore>>) -> Box {
     let stack = Stack::new();

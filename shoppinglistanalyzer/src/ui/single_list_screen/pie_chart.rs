@@ -1,4 +1,4 @@
-use charming::{ element::{ItemStyle, Label}, series::Pie, Chart, ImageFormat, ImageRenderer };
+use charming::{ component::Legend, element::{Color, ItemStyle, Label, Orient, TextStyle}, series::Pie, Chart, ImageFormat, ImageRenderer };
 use gtk4::*;
 use gtk4::prelude::*;
 use gdk_pixbuf::{prelude::PixbufLoaderExt, PixbufLoader};
@@ -25,11 +25,16 @@ pub fn draw(store: Rc<RefCell<ListStore>>) -> Box {
 
 fn generate_pie_chart(store: Rc<RefCell<ListStore>>) -> Vec<u8> {
     let chart = Chart::new()
+        .legend(Legend::new().orient(Orient::Vertical).left("left")
+            .text_style(TextStyle::new()
+                .font_size(20)
+                .color(Color::Value("White".to_string()))
+            ))
         .series(Pie::new()
             .item_style(ItemStyle::new().border_radius(8))
-            .label(Label::new().font_size(35).border_width(200))
+            .label(Label::new().show(false))
             .data(parse_data_from_store(store)));
-    let mut renderer = ImageRenderer::new(1000, 800);
+    let mut renderer = ImageRenderer::new(1120, 480);
     println!("saved chart");
     renderer.render_format(ImageFormat::Png, &chart).unwrap()
 }
@@ -46,7 +51,6 @@ fn parse_data_from_store(store: Rc<RefCell<ListStore>>) -> Vec<(f64, String)> {
     store.borrow().foreach(|_model, _path, iter| {
         let category = store.borrow().get::<String>(iter, 1);
         let price = store.borrow().get::<f64>(iter, 2); 
-        println!("Price: {}\tCategory: {}", price, category);
         if category == Categories::Protein.to_cat_string() {
             proteins += price;
         } else if category == Categories::FruitsVegetables.to_cat_string() {
@@ -66,16 +70,15 @@ fn parse_data_from_store(store: Rc<RefCell<ListStore>>) -> Vec<(f64, String)> {
         } 
         false 
     });
-    println!("p: {}\nfv: {}\nd: {}\nfo: {}\nc: {}\nu: {}\nh: {}\nm: {}", proteins, fruit_vegtabable, dairy, fat_oil, carbohydrate, unhealthy, hygiene, misc);
     let data: Vec<(f64, String)> = vec!{
         (proteins, Categories::Protein.to_cat_string()),
-        (misc, Categories::Misc.to_cat_string()),
+        (fruit_vegtabable, Categories::FruitsVegetables.to_cat_string()),
         (dairy, Categories::Dairy.to_cat_string()),
         (fat_oil, Categories::FatsOils.to_cat_string()),
         (carbohydrate, Categories::Carbohydrates.to_cat_string()),
         (unhealthy, Categories::Unhealthy.to_cat_string()),
         (hygiene, Categories::Hygiene.to_cat_string()),
-        (fruit_vegtabable, Categories::FruitsVegetables.to_cat_string()),
+        (misc, Categories::Misc.to_cat_string()),
     };
     data
 }

@@ -59,17 +59,27 @@ impl SingleList {
 
         let store_clone = Rc::clone(&self.store);
         let self_rc = self.self_ref.as_ref().unwrap().clone();
+        let screen_clone = screen.clone();
         self.list_selector.connect_changed(move |list|{
             store_clone.borrow_mut().clear();
             if list.active().is_some() {
                 let list_id = extract_first_number(&list.active_text().unwrap()).unwrap();
                 self_rc.borrow().fill_items(list_id, store_clone.clone());
+                screen_clone.remove(self_rc.borrow().total_list.as_ref().unwrap());
+                screen_clone.remove(self_rc.borrow().category_list.as_ref().unwrap());
+                self_rc.borrow_mut().refresh_ui();
+                screen_clone.attach(self_rc.borrow().total_list.as_ref().unwrap(), 0, 1, 1, 1);
+                screen_clone.attach(self_rc.borrow().category_list.as_ref().unwrap(), 0, 2, 2, 2);
             }
         });
-
         screen.attach(&self.list_selector, 0, 0, 1, 1);
 
         screen
+    }
+
+    pub fn refresh_ui(&mut self) {
+        self.total_list = Some(total_list::create_total_list(Rc::clone(&self.store)));
+        self.category_list = Some(category_list::create_category_list(Rc::clone(&self.store)));
     }
 
     pub fn refresh_selector(&self) {

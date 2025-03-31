@@ -71,14 +71,14 @@ fn parse_data_from_store(store: Rc<RefCell<ListStore>>) -> Vec<(f64, String)> {
         false 
     });
     let data: Vec<(f64, String)> = vec!{
-        (proteins, Categories::Protein.to_cat_string()),
-        (fruit_vegtabable, Categories::FruitsVegetables.to_cat_string()),
-        (dairy, Categories::Dairy.to_cat_string()),
-        (fat_oil, Categories::FatsOils.to_cat_string()),
-        (carbohydrate, Categories::Carbohydrates.to_cat_string()),
-        (unhealthy, Categories::Unhealthy.to_cat_string()),
-        (hygiene, Categories::Hygiene.to_cat_string()),
-        (misc, Categories::Misc.to_cat_string()),
+        (proteins, format!("{} - {}", Categories::Protein.to_cat_string(), proteins)),
+        (fruit_vegtabable, format!("{} - {}" ,Categories::FruitsVegetables.to_cat_string(), fruit_vegtabable)),
+        (dairy, format!("{} - {}", Categories::Dairy.to_cat_string(), dairy)),
+        (fat_oil, format!("{} - {}", Categories::FatsOils.to_cat_string(), fat_oil)),
+        (carbohydrate, format!("{} - {}", Categories::Carbohydrates.to_cat_string(), carbohydrate)),
+        (unhealthy, format!("{} - {}", Categories::Unhealthy.to_cat_string(), unhealthy)),
+        (hygiene, format!("{} - {}", Categories::Hygiene.to_cat_string(), hygiene)),
+        (misc, format!("{} - {}", Categories::Misc.to_cat_string(), misc)),
     };
     data
 }

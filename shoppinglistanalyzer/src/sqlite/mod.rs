@@ -15,7 +15,6 @@ impl Database {
             connection: None
         }
     }
-//sqlite::open(db_path).unwrap()
     fn get_db_path() -> String {
         let bpath: String = match  std::env::current_exe() {
             Ok(exe_path) => exe_path.display().to_string(),
@@ -29,7 +28,6 @@ impl Database {
         let existing_db = Path::new(&self.path).exists();
         self.connection = Some(sqlite::open(self.path.clone()).unwrap());
 
-        println!("existing_db = {}\t path = {}", existing_db, self.path);
         if !existing_db {
             let query = "
                 CREATE TABLE lists (ListId INTEGER PRIMARY KEY AUTOINCREMENT, Date TEXT, TotalCost REAL);

@@ -7,7 +7,7 @@ use crate::sqlite::Database;
 use crate::data_structures::*;
 use super::single_list_screen::SingleList;
 
-pub fn show_add_list_dialog(parent: &ApplicationWindow, database: Rc<RefCell<Database>>, single_list: Rc<RefCell<SingleList>>) {
+pub fn show_add_list_dialog(parent: &ApplicationWindow, database: Rc<RefCell<Database>>, stack: Stack) {
     let parent_clone = parent.clone();
     let dialog = Dialog::builder()
         .title("Dynamic Form")
@@ -105,13 +105,12 @@ pub fn show_add_list_dialog(parent: &ApplicationWindow, database: Rc<RefCell<Dat
     
     let form_box_ref_clone_2 = Rc::clone(&form_box_ref);
     let database_clone = Rc::clone(&database);
-    let single_list_clone = Rc::clone(&single_list);
     dialog.connect_response(move|dialog, response| {
         if response == gtk4::ResponseType::Accept {
             println!("Form submitted!");
             let date_string: String = date_button.borrow().label().unwrap().to_string();
             parse_add_database(Rc::clone(&database_clone), &form_box_ref_clone_2.borrow(), date_string);
-            //single_list_clone.borrow().refresh_selector();
+            refresh_stack(&stack, Rc::clone(&database_clone));
         }
         parent_clone.queue_draw();
         dialog.close();
@@ -237,4 +236,17 @@ fn parse_add_database(database: Rc<RefCell<Database>>, form_box: &Box, date: Str
     let the_list: List = List::new(0, items, date);
     database.borrow().store_list(&the_list);
 
+}
+
+fn refresh_stack(stack: &Stack, database: Rc<RefCell<Database>>) {
+    // Clear the stack
+    while let Some(child) = stack.first_child() {
+        stack.remove(&child);
+    }
+
+    let single_list = SingleList::new(database.clone());
+    let single_list_grid = single_list.borrow_mut().create_single_list_screen();
+
+    let single_list_page = stack.add_named(&single_list_grid, Some("single_list"));
+    single_list_page.set_title("Single List");
 }

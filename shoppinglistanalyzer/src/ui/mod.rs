@@ -33,31 +33,25 @@ pub fn build_ui(app: &Application) {
         list_store.append(list);
     }
 
+    let stack = Stack::new();
+    let switcher = StackSwitcher::new();
+    switcher.set_stack(Some(&stack));
+
     let single_list = single_list_screen::SingleList::new(database.clone());
     let single_list_grid = single_list.borrow_mut().create_single_list_screen();
     let multi_list = multi_list_screen::create_multi_list_screen();
     let nutrition_screen = nutrition_screen::create_nutrition_screen();
 
+    add_to_stack(&stack, &single_list_grid, &multi_list, &nutrition_screen);
+
     let add_list_button = Button::with_label("Add List");
     let window_clone = window.clone();
-    let single_list_clone = Rc::clone(&single_list);
     let database_clone = Rc::clone(&database);
+    let stack_clone = stack.clone();
     add_list_button.connect_clicked(move |_| {
-        add_list_dialog::show_add_list_dialog(&window_clone, Rc::clone(&database_clone), Rc::clone(&single_list_clone));
+        add_list_dialog::show_add_list_dialog(&window_clone, Rc::clone(&database_clone), stack_clone.clone());
     });
     top_box.append(&add_list_button);
-
-    let stack = Stack::new();
-    let switcher = StackSwitcher::new();
-    switcher.set_stack(Some(&stack));
-
-    let single_list_page = stack.add_named(&single_list_grid, Some("single_list"));
-    single_list_page.set_title("Single List");
-    let multi_list_page = stack.add_named(&multi_list, Some("multi_list"));
-    multi_list_page.set_title("Multi List");
-    let nutrition_page = stack.add_named(&nutrition_screen, Some("nutrition_screen"));
-    nutrition_page.set_title("Nutrition");
-
 
     main_box.append(&top_box);
     main_box.append(&switcher);
@@ -73,3 +67,13 @@ pub fn build_ui(app: &Application) {
 
     window.present();
 }
+
+fn add_to_stack(stack: &Stack, single_list: &Grid, multi_list: &Grid, nutrition: &Grid) {
+    let single_list_page = stack.add_named(single_list, Some("single_list"));
+    single_list_page.set_title("Single List");
+    let multi_list_page = stack.add_named(multi_list, Some("multi_list"));
+    multi_list_page.set_title("Multi List");
+    let nutrition_page = stack.add_named(nutrition, Some("nutrition_screen"));
+    nutrition_page.set_title("Nutrition");
+}
+

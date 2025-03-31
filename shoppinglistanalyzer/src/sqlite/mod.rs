@@ -4,7 +4,7 @@ use std::{cell::RefCell, path::Path, rc::Rc};
 
 pub struct Database {
     path: String,
-    connection: sqlite::Connection,
+    connection: Option<sqlite::Connection>,
 }
 
 impl Database {
@@ -12,10 +12,10 @@ impl Database {
         let db_path = Self::get_db_path();
         Self {
             path: db_path.to_string(),
-            connection: sqlite::open(db_path).unwrap()
+            connection: None
         }
     }
-
+//sqlite::open(db_path).unwrap()
     fn get_db_path() -> String {
         let bpath: String = match  std::env::current_exe() {
             Ok(exe_path) => exe_path.display().to_string(),
@@ -25,9 +25,11 @@ impl Database {
         db_path
     }
 
-    pub fn start_database(&self) {
+    pub fn start_database(&mut self) {
         let existing_db = Path::new(&self.path).exists();
+        self.connection = Some(sqlite::open(self.path.clone()).unwrap());
 
+        println!("existing_db = {}\t path = {}", existing_db, self.path);
         if !existing_db {
             let query = "
                 CREATE TABLE lists (ListId INTEGER PRIMARY KEY AUTOINCREMENT, Date TEXT, TotalCost REAL);
@@ -53,7 +55,7 @@ impl Database {
                 FOREIGN KEY (ItemId) REFERENCES items(ItemId)
             );
             ";
-            self.connection.execute(query).unwrap();
+            self.connection.as_ref().unwrap().execute(query).unwrap();
         }
     }
 
@@ -61,14 +63,14 @@ impl Database {
         let query = format!("
             INSERT INTO lists (Date, TotalCost) VALUES (\"{}\", {});
             ", list.date, list.get_total_cost());
-            self.connection.execute(query).unwrap();
+            self.connection.as_ref().unwrap().execute(query).unwrap();
 
             let list_id_query = "
                 SELECT ListId FROM lists
                 ORDER BY ListId DESC
                 LIMIT 1;
             ";
-            let mut list_id_statement = self.connection.prepare(list_id_query).expect("Failed to prepare find list id statement");
+            let mut list_id_statement = self.connection.as_ref().unwrap().prepare(list_id_query).expect("Failed to prepare find list id statement");
             let mut list_id: i64 = 0;
             if let State::Row = list_id_statement.next().expect("Failed to execute find item ID query") {
                 list_id = list_id_statement.read(0).expect("Failed to read ID");
@@ -87,7 +89,7 @@ impl Database {
                     WHERE name = ?1
                     LIMIT 1;
                 ";
-                let mut item_id_statement = self.connection.prepare(item_id_query).expect("Failed to prepare statement");
+                let mut item_id_statement = self.connection.as_ref().unwrap().prepare(item_id_query).expect("Failed to prepare statement");
                 let item_name: &str = &item.name;
                 item_id_statement.bind((1, item_name)).expect("Failed to bind item id");
 
@@ -101,7 +103,7 @@ impl Database {
                 let list_item_pair_query = format!("
                     INSERT INTO listItems (ListId, ItemId, Price) VALUES ({}, {}, {});
                     ", list_id, item_id, item.price);
-                    self.connection.execute(list_item_pair_query).unwrap();
+                    self.connection.as_ref().unwrap().execute(list_item_pair_query).unwrap();
             }
     }
 
@@ -111,7 +113,7 @@ impl Database {
             INSERT INTO items (Name, Category) VALUES (\"{}\", \"{}\");
             ", item.name, item.category);
             if !self.check_item_exists(Rc::clone(&item_rc)) {
-                self.connection.execute(query).expect("query failed for inserting item");
+                self.connection.as_ref().unwrap().execute(query).expect("query failed for inserting item");
                 println!("query has executed correctly");
             }
     }
@@ -120,7 +122,7 @@ impl Database {
         let query = format!("
             SELECT EXISTS(SELECT Name FROM items WHERE Name = \"{}\");
             ", item.borrow_mut().name);
-            let mut statement = self.connection.prepare(query).expect("failed to prepare statement");
+            let mut statement = self.connection.as_ref().unwrap().prepare(query).expect("failed to prepare statement");
             if let State::Row = statement.next().expect("Failed to read") {
                 let result: i64 = statement.read(0).expect("Failed to read");
                 if result == 1 {
@@ -140,7 +142,7 @@ impl Database {
         let query = "
             SELECT ListId, Date FROM lists
             ";
-        let mut statement = self.connection.prepare(query).unwrap();
+        let mut statement = self.connection.as_ref().unwrap().prepare(query).unwrap();
         while let Ok(State::Row) = statement.next() {
             let id = statement.read::<String, _>("ListId").unwrap();
             let date = statement.read::<String, _>("Date").unwrap();
@@ -157,7 +159,7 @@ impl Database {
             INNER JOIN listItems li ON i.ItemId = li.ItemId
             WHERE li.ListId = ?1;
         ";
-        let mut statement = self.connection.prepare(query).unwrap();
+        let mut statement = self.connection.as_ref().unwrap().prepare(query).unwrap();
         statement.bind((1, list_id)).expect("failed to bind list ID in get items");
         while let Ok(State::Row) = statement.next() {
             let id = statement.read::<i64, _>("ItemId").unwrap();

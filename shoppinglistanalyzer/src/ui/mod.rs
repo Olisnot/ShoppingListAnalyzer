@@ -20,6 +20,8 @@ pub fn build_ui(app: &Application) {
     let window = ApplicationWindow::builder()
         .application(app)
         .title("Shopping List Analyzer")
+        .default_width(1280)
+        .default_height(720)
         .build();
 
     let main_box = gtk4::Box::new(Orientation::Vertical, 5);

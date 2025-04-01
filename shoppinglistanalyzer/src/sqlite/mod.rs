@@ -1,6 +1,7 @@
 use sqlite::State;
 use crate::data_structures::*;
 use std::{cell::RefCell, path::Path, rc::Rc};
+use gtk4::glib::DateTime;
 
 pub struct Database {
     path: String,
@@ -147,6 +148,25 @@ impl Database {
             list.push(format!("{} - {}", id, date));
         }
         list
+    }
+
+    pub fn get_lists_in_dates_range(&self, start_date: &DateTime, end_date: &DateTime) -> Vec<List> {
+        let mut lists: Vec<List> = Vec::new();
+        let start_string: &str = &format!("{}-{}-{}", start_date.day_of_month(), start_date.month(), start_date.year());
+        let end_string: &str = &format!("{}-{}-{}", end_date.day_of_month(), end_date.month(), end_date.year());
+        let query = format!("
+            SELECT * 
+            FROM lists
+            WHERE Date BETWEEN '{}' AND '{}';
+        ", start_string, end_string);
+        let mut statement = self.connection.as_ref().unwrap().prepare(query).unwrap();
+        while let Ok(State::Row) = statement.next() {
+            let id = statement.read::<i64, _>("ListId").unwrap();
+            let date = statement.read::<String, _>("Date").unwrap(); 
+            let items = self.get_items(id);
+            lists.push(List::new(id, items, date));
+        }
+        lists
     }
 
     pub fn get_items(&self, list_id: i64) -> Vec<Item>{

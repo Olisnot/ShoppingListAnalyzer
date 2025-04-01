@@ -54,13 +54,13 @@ impl Item {
 }
 
 pub struct List {
-    pub id: i32,
+    pub id: i64,
     pub date: String,
     pub items: Vec<Item>,
 }
 
 impl List {
-    pub fn new(identifier: i32, items_vec: Vec<Item>, date_of_list: String) -> Self{
+    pub fn new(identifier: i64, items_vec: Vec<Item>, date_of_list: String) -> Self{
         Self {
             id: identifier,
             date: date_of_list,

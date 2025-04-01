@@ -82,21 +82,6 @@ impl SingleList {
         screen.attach(self.category_list.as_ref().unwrap(), 0, 2, 2, 2);
     }
 
-    pub fn refresh_selector(&self) {
-        println!("refreshing selector");
-        self.list_selector.set_active(None);
-        self.list_selector.clear();
-        let lists = self.database.borrow().get_lists_dates();
-        for list_date in lists.iter() {
-            self.list_selector.append(Some(list_date), list_date);
-        }
-        let length: u32 = lists.len().try_into().unwrap();
-        if !lists.is_empty() {
-            self.list_selector.set_active(Some(length-1));
-        }
-    }
-
-
     fn fill_items(&self, list_id: i64, store: Rc<RefCell<ListStore>>) {
         if list_id == 0 {
             return;

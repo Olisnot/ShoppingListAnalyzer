@@ -6,6 +6,8 @@ use gtk4::ApplicationWindow;
 use crate::sqlite::Database;
 use crate::data_structures::*;
 use super::single_list_screen::SingleList;
+use super::multi_list_screen::MultiList;
+use super::nutrition_screen::create_nutrition_screen;
 
 pub fn show_add_list_dialog(parent: &ApplicationWindow, database: Rc<RefCell<Database>>, stack: Stack) {
     let parent_clone = parent.clone();
@@ -17,8 +19,8 @@ pub fn show_add_list_dialog(parent: &ApplicationWindow, database: Rc<RefCell<Dat
         .default_height(800)
         .build();
     
-    dialog.add_button("Cancel", gtk4::ResponseType::Cancel);
-    dialog.add_button("Submit", gtk4::ResponseType::Accept);
+    dialog.add_button("Cancel", ResponseType::Cancel);
+    dialog.add_button("Submit", ResponseType::Accept);
 
     let content_area = dialog.content_area();
     content_area.set_margin_end(20);
@@ -106,7 +108,7 @@ pub fn show_add_list_dialog(parent: &ApplicationWindow, database: Rc<RefCell<Dat
     let form_box_ref_clone_2 = Rc::clone(&form_box_ref);
     let database_clone = Rc::clone(&database);
     dialog.connect_response(move|dialog, response| {
-        if response == gtk4::ResponseType::Accept {
+        if response == ResponseType::Accept {
             println!("Form submitted!");
             let date_string: String = date_button.borrow().label().unwrap().to_string();
             parse_add_database(Rc::clone(&database_clone), &form_box_ref_clone_2.borrow(), date_string);
@@ -120,7 +122,7 @@ pub fn show_add_list_dialog(parent: &ApplicationWindow, database: Rc<RefCell<Dat
 }
 
 fn add_form_row(form_box: &Rc<RefCell<Box>>, parent_dialog: &Dialog) {
-    let item_box = Rc::new(RefCell::new(gtk4::Box::new(Orientation::Horizontal, 10)));
+    let item_box = Rc::new(RefCell::new(Box::new(Orientation::Horizontal, 10)));
 
     let remove_button = Button::with_label("✕");
     remove_button.set_tooltip_text(Some("Remove this item"));
@@ -161,7 +163,7 @@ fn add_form_row(form_box: &Rc<RefCell<Box>>, parent_dialog: &Dialog) {
     name_entry.set_placeholder_text(Some("Name"));
     price_entry.set_hexpand(true);
     price_entry.set_placeholder_text(Some("Price"));
-    price_entry.set_input_purpose(gtk4::InputPurpose::Number);
+    price_entry.set_input_purpose(InputPurpose::Number);
 
     let category_combo = ComboBoxText::new();
     
@@ -195,13 +197,13 @@ fn parse_add_database(database: Rc<RefCell<Database>>, form_box: &Box, date: Str
 
     let mut current_child = form_box.first_child();
     while let Some(child) = current_child {
-        let root_box = child.downcast_ref::<gtk4::Box>().unwrap();
+        let root_box = child.downcast_ref::<Box>().unwrap();
         let mut inner_current_child = root_box.first_child();
         while let Some(inner_child) = inner_current_child {
             let type_info = inner_child.type_();
             println!("Widget type: {}", type_info.name());
-            if inner_child.is::<gtk4::Entry>() {
-                let entry = inner_child.downcast_ref::<gtk4::Entry>().unwrap();
+            if inner_child.is::<Entry>() {
+                let entry = inner_child.downcast_ref::<Entry>().unwrap();
                 if let Some(placeholder_text) = entry.placeholder_text() {
                     if  placeholder_text == "Name" {
                         println!("name");
@@ -213,8 +215,8 @@ fn parse_add_database(database: Rc<RefCell<Database>>, form_box: &Box, date: Str
                     }
                 }
             }
-            else if inner_child.is::<gtk4::ComboBoxText>() {
-                let combo = inner_child.downcast_ref::<gtk4::ComboBoxText>().unwrap();
+            else if inner_child.is::<ComboBoxText>() {
+                let combo = inner_child.downcast_ref::<ComboBoxText>().unwrap();
                 if let Some(category_text) = combo.active_text() {
                     category = category_text.to_string();
                 }
@@ -246,7 +248,14 @@ fn refresh_stack(stack: &Stack, database: Rc<RefCell<Database>>) {
 
     let single_list = SingleList::new(database.clone());
     let single_list_grid = single_list.borrow_mut().create_single_list_screen();
+    let multi_list = MultiList::new(database.clone());
+    let multi_list_screen = multi_list.borrow_mut().create_multi_list_screen();
+    let nutrition_screen = create_nutrition_screen();
 
     let single_list_page = stack.add_named(&single_list_grid, Some("single_list"));
     single_list_page.set_title("Single List");
+    let multi_list_page = stack.add_named(&multi_list_screen, Some("multi_list"));
+    multi_list_page.set_title("Multi List");
+    let nutrition_page = stack.add_named(&nutrition_screen, Some("nutrition_screen"));
+    nutrition_page.set_title("Nutrition");
 }

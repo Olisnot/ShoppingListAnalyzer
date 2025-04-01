@@ -41,10 +41,11 @@ pub fn build_ui(app: &Application) {
 
     let single_list = single_list_screen::SingleList::new(database.clone());
     let single_list_grid = single_list.borrow_mut().create_single_list_screen();
-    let multi_list = multi_list_screen::create_multi_list_screen();
+    let multi_list = multi_list_screen::MultiList::new(database.clone());
+    let multi_list_screen = multi_list.borrow_mut().create_multi_list_screen();
     let nutrition_screen = nutrition_screen::create_nutrition_screen();
 
-    add_to_stack(&stack, &single_list_grid, &multi_list, &nutrition_screen);
+    add_to_stack(&stack, &single_list_grid, &multi_list_screen, &nutrition_screen);
 
     let add_list_button = Button::with_label("Add List");
     let window_clone = window.clone();
@@ -70,7 +71,7 @@ pub fn build_ui(app: &Application) {
     window.present();
 }
 
-fn add_to_stack(stack: &Stack, single_list: &Grid, multi_list: &Grid, nutrition: &Grid) {
+fn add_to_stack(stack: &Stack, single_list: &Grid, multi_list: &Box, nutrition: &Grid) {
     let single_list_page = stack.add_named(single_list, Some("single_list"));
     single_list_page.set_title("Single List");
     let multi_list_page = stack.add_named(multi_list, Some("multi_list"));

@@ -9,6 +9,9 @@ use gtk4::*;
 use gtk4::prelude::*;
 use gtk4::{Application, ApplicationWindow, CssProvider};
 use gtk4::gdk::Display;
+use single_list_screen::SingleList;
+use multi_list_screen::MultiList;
+use nutrition_screen::Nutrition;
 use crate::sqlite::Database;
 
 pub fn build_ui(app: &Application) {
@@ -39,11 +42,12 @@ pub fn build_ui(app: &Application) {
     let switcher = StackSwitcher::new();
     switcher.set_stack(Some(&stack));
 
-    let single_list = single_list_screen::SingleList::new(database.clone());
+    let single_list = SingleList::new(database.clone());
     let single_list_grid = single_list.borrow_mut().create_single_list_screen();
-    let multi_list = multi_list_screen::MultiList::new(database.clone());
+    let multi_list = MultiList::new(database.clone());
     let multi_list_screen = multi_list.borrow_mut().create_multi_list_screen();
-    let nutrition_screen = nutrition_screen::create_nutrition_screen();
+    let nutrition = Nutrition::new(database.clone());
+    let nutrition_screen = nutrition.borrow_mut().create_nutrition_screen();
 
     add_to_stack(&stack, &single_list_grid, &multi_list_screen, &nutrition_screen);
 
@@ -71,7 +75,7 @@ pub fn build_ui(app: &Application) {
     window.present();
 }
 
-fn add_to_stack(stack: &Stack, single_list: &Grid, multi_list: &Box, nutrition: &Grid) {
+fn add_to_stack(stack: &Stack, single_list: &Grid, multi_list: &Box, nutrition: &Box) {
     let single_list_page = stack.add_named(single_list, Some("single_list"));
     single_list_page.set_title("Single List");
     let multi_list_page = stack.add_named(multi_list, Some("multi_list"));

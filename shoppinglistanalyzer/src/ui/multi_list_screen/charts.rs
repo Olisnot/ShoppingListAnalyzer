@@ -1,24 +1,24 @@
-use charming::{ component::Legend, element::{Color, ItemStyle, Label, Orient, TextStyle}, series::Pie, Chart, ImageFormat, ImageRenderer };
+use charming::{ component::{Axis, Legend}, element::{AxisType, Color, ItemStyle, AxisLabel, Label, Orient, TextStyle}, series::{Bar, Pie}, Chart, ImageFormat, ImageRenderer };
 use gtk4::*;
 use gtk4::prelude::*;
 use gdk_pixbuf::{prelude::PixbufLoaderExt, PixbufLoader};
 use std::{rc::Rc, cell::RefCell};
-use crate::data_structures::Categories;
+use crate::data_structures::{ List, Categories};
 
-pub fn create_charts(store: Rc<RefCell<TreeStore>>) -> Box {
+pub fn create_charts(store: Rc<RefCell<TreeStore>>, lists: Rc<RefCell<Vec<List>>>) -> Box {
     let charts_box = Box::new(Orientation::Vertical, 12);
-    charts_box.append(&draw_bar_chart(Rc::clone(&store)));
+    charts_box.append(&draw_bar_chart(Rc::clone(&lists)));
     charts_box.append(&draw_pie_chart(Rc::clone(&store)));
 
     charts_box
 }
 
-fn draw_bar_chart(store: Rc<RefCell<TreeStore>>) -> Box {
+fn draw_bar_chart(lists: Rc<RefCell<Vec<List>>>) -> Box {
     let b_box = Box::new(Orientation::Vertical, 12);
     b_box.set_hexpand(true);
     b_box.set_vexpand(true);
 
-    let png_data = generate_pie_chart(store);
+    let png_data = genereat_bar_chart(lists);
     let loader = PixbufLoader::new();
     loader.write(&png_data).unwrap();
     loader.close().unwrap();
@@ -49,18 +49,49 @@ fn draw_pie_chart(store: Rc<RefCell<TreeStore>>) -> Box {
     p_box
 }
 
+fn genereat_bar_chart(lists: Rc<RefCell<Vec<List>>>) -> Vec<u8> {
+    let chart = Chart::new()
+        .x_axis(Axis::new()
+            .type_(AxisType::Category)
+            .axis_label(AxisLabel::new().font_size(32))
+            .data(parse_lists_for_dates(Rc::clone(&lists))))
+        .y_axis(Axis::new()
+            .axis_label(AxisLabel::new().font_size(32))
+            .type_(AxisType::Value))
+        .series(Bar::new().data(parse_data_from_lists_for_bar(Rc::clone(&lists))));
+    let mut renderer = ImageRenderer::new(1680, 720);
+    println!("saved chart");
+    renderer.render_format(ImageFormat::Png, &chart).unwrap()
+}
+
+fn parse_data_from_lists_for_bar(lists: Rc<RefCell<Vec<List>>>) -> Vec<f64> {
+    let mut amounts: Vec<f64> = Vec::new();
+    for list in lists.borrow().iter() {
+        amounts.push(list.get_total_cost());
+    }
+    amounts
+}
+
+fn parse_lists_for_dates(lists: Rc<RefCell<Vec<List>>>) -> Vec<String> {
+    let mut dates: Vec<String> = Vec::new();
+    for list in lists.borrow().iter() {
+        dates.push(list.date.clone());
+    }
+    dates
+}
+
 fn generate_pie_chart(store: Rc<RefCell<TreeStore>>) -> Vec<u8> {
     let chart = Chart::new()
         .legend(Legend::new().orient(Orient::Vertical).left("left")
             .text_style(TextStyle::new()
-                .font_size(20)
+                .font_size(32)
                 .color(Color::Value("White".to_string()))
             ))
         .series(Pie::new()
             .item_style(ItemStyle::new().border_radius(8))
             .label(Label::new().show(false))
             .data(parse_data_from_store_for_pie(store)));
-    let mut renderer = ImageRenderer::new(1120, 480);
+    let mut renderer = ImageRenderer::new(1680, 720);
     println!("saved chart");
     renderer.render_format(ImageFormat::Png, &chart).unwrap()
 }

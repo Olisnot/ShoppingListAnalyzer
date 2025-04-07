@@ -22,6 +22,7 @@ pub struct MultiList {
     totals: Option<Box>,
     categories: Option<Box>,
     charts: Option<Box>,
+    main_content: Option<Paned>,
 }
 impl MultiList {
     pub fn new(db: Rc<RefCell<Database>>) -> Rc<RefCell<Self>> {
@@ -36,6 +37,7 @@ impl MultiList {
             totals: None,
             categories: None,
             charts: None,
+            main_content: None,
             self_ref: None,
         }));
         list.borrow_mut().self_ref = Some(Rc::clone(&list));
@@ -94,36 +96,18 @@ impl MultiList {
             });
         }
 
-        let main_content = Rc::new(RefCell::new(Box::new(Orientation::Horizontal, 15)));
-        main_content.borrow().set_vexpand(true);
-        main_content.borrow().set_hexpand(true);
+        self.create_main_content(&self.start_date_calendar.date(), &self.end_date_calendar.date());
 
-        let totals_category_box = Box::new(Orientation::Vertical, 15);
-        totals_category_box.set_vexpand(true);
-        totals_category_box.set_hexpand(true);
-
-        self.totals = Some(create_totals(Rc::clone(&self.store)));
-        totals_category_box.append(self.totals.as_ref().unwrap());
-
-        self.categories = Some(create_categories(Rc::clone(&self.store)));
-        totals_category_box.append(self.categories.as_ref().unwrap());
-
-        main_content.borrow().append(&totals_category_box);
-
-        self.charts = Some(create_charts(Rc::clone(&self.store)));
-        main_content.borrow().append(self.charts.as_ref().unwrap());
-
-        screen.append(&*main_content.borrow());
+        screen.append(self.main_content.as_ref().unwrap());
 
         let calculate_button = Button::with_label("Calculate");
         let screen_clone = screen.clone();
-        let main_content_clone = Rc::clone(&main_content);
         let start_calendar_clone = self.start_date_calendar.clone();
         let end_calendar_clone = self.end_date_calendar.clone();
         let self_rc = self.self_ref.as_ref().unwrap().clone();
         calculate_button.connect_clicked(move |_|{
             self_rc.borrow().populate_store(&start_calendar_clone.date(), &end_calendar_clone.date());
-            self_rc.borrow_mut().refresh_ui(screen_clone.clone(), Rc::clone(&main_content_clone));
+            self_rc.borrow_mut().refresh_ui(screen_clone.clone(), &start_calendar_clone.date(), &end_calendar_clone.date());
         });
         date_selectors_box.append(&calculate_button);
 
@@ -133,6 +117,47 @@ impl MultiList {
     fn create_date_button(&self, calendar: &Calendar) -> Button {
         let date = calendar.date();
         Button::with_label(&format!("{}-{}-{}", date.day_of_month(), date.month(), date.year()))
+    }
+
+    fn create_main_content(&mut self, start_date: &DateTime, end_date: &DateTime) {
+        let lists = self.database.borrow().get_lists_in_dates_range(start_date, end_date);
+
+        let main_content = Paned::new(Orientation::Horizontal);
+        main_content.set_vexpand(true);
+        main_content.set_hexpand(true);
+
+        let totals_category_box = Box::new(Orientation::Vertical, 15);
+        totals_category_box.set_vexpand(true);
+        totals_category_box.set_hexpand(true);
+
+        let totals_labels_box = Box::new(Orientation::Horizontal, 12);
+        let mut total = 0.0;
+        for list in lists.iter() {
+            total += list.get_total_cost();
+        }
+        let average = total/lists.len() as f64;
+        let total_label = Label::new(Some(&format!("Total: {:.2}", total)));
+        let average_cost_label = Label::new(Some(&format!("Average Cost: {:.2}", average)));
+        totals_labels_box.append(&total_label);
+        totals_labels_box.append(&average_cost_label);
+        totals_category_box.append(&totals_labels_box);
+
+        self.totals = Some(create_totals(Rc::clone(&self.store)));
+        totals_category_box.append(self.totals.as_ref().unwrap());
+
+
+        self.categories = Some(create_categories(Rc::clone(&self.store)));
+        totals_category_box.append(self.categories.as_ref().unwrap());
+
+        main_content.set_start_child(Some(&totals_category_box));
+
+        let lists_rc = Rc::new(RefCell::new(lists));
+        self.charts = Some(create_charts(Rc::clone(&self.store), Rc::clone(&lists_rc)));
+        main_content.set_end_child(Some(self.charts.as_ref().unwrap()));
+
+        main_content.set_position(600);
+
+        self.main_content = Some(main_content);
     }
 
     fn populate_store(&self, start_date: &DateTime, end_date: &DateTime) {
@@ -204,9 +229,10 @@ impl MultiList {
         self.store.borrow().set_value(parent, 2, &total_price.to_value());
     }
 
-    pub fn refresh_ui(&mut self, screen: Box, main_content: Rc<RefCell<Box>>) {
-        screen.remove(&*main_content.borrow());
+    pub fn refresh_ui(&mut self, screen: Box, start_date: &DateTime, end_date: &DateTime) {
+        screen.remove(self.main_content.as_ref().unwrap());
         self.categories = Some(create_categories(Rc::clone(&self.store)));
-        screen.append(&*main_content.borrow());
+        self.create_main_content(start_date, end_date);
+        screen.append(self.main_content.as_ref().unwrap());
     }
 }

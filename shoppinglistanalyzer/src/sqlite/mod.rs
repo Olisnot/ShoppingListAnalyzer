@@ -163,13 +163,28 @@ impl Database {
         while let Ok(State::Row) = statement.next() {
             let id = statement.read::<i64, _>("ListId").unwrap();
             let date = statement.read::<String, _>("Date").unwrap(); 
-            let items = self.get_items(id);
+            let items = self.get_items_by_id(id);
             lists.push(List::new(id, items, date));
         }
         lists
     }
 
-    pub fn get_items(&self, list_id: i64) -> Vec<Item>{
+    pub fn get_items(&self) -> Vec<Item> {
+        let mut list = Vec::new();
+        let query = "
+            SELECT * FROM items
+        ";
+        let mut statement = self.connection.as_ref().unwrap().prepare(query).unwrap();
+        while let Ok(State::Row) = statement.next() {
+            let id = statement.read::<i64, _>("ItemId").unwrap();
+            let name = statement.read::<String, _>("Name").unwrap();
+            let category = statement.read::<String, _>("Category").unwrap();
+            list.push(Item::new(id, name, category, 0.0));
+        }
+        list
+    }
+
+    pub fn get_items_by_id(&self, list_id: i64) -> Vec<Item>{
         let mut list = Vec::new();
         let query = "
             SELECT i.*, li.price

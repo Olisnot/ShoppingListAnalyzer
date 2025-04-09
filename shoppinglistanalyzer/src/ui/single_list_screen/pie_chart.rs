@@ -71,14 +71,14 @@ fn parse_data_from_store(store: Rc<RefCell<ListStore>>) -> Vec<(f64, String)> {
         false 
     });
     let data: Vec<(f64, String)> = vec!{
-        (proteins, format!("{} - {}", Categories::Protein.to_cat_string(), proteins)),
-        (fruit_vegtabable, format!("{} - {}" ,Categories::FruitsVegetables.to_cat_string(), fruit_vegtabable)),
-        (dairy, format!("{} - {}", Categories::Dairy.to_cat_string(), dairy)),
-        (fat_oil, format!("{} - {}", Categories::FatsOils.to_cat_string(), fat_oil)),
-        (carbohydrate, format!("{} - {}", Categories::Carbohydrates.to_cat_string(), carbohydrate)),
-        (unhealthy, format!("{} - {}", Categories::Unhealthy.to_cat_string(), unhealthy)),
-        (hygiene, format!("{} - {}", Categories::Hygiene.to_cat_string(), hygiene)),
-        (misc, format!("{} - {}", Categories::Misc.to_cat_string(), misc)),
+        (proteins, format!("{} - {:.2}", Categories::Protein.to_cat_string(), proteins)),
+        (fruit_vegtabable, format!("{} - {:.2}" ,Categories::FruitsVegetables.to_cat_string(), fruit_vegtabable)),
+        (dairy, format!("{} - {:.2}", Categories::Dairy.to_cat_string(), dairy)),
+        (fat_oil, format!("{} - {:.2}", Categories::FatsOils.to_cat_string(), fat_oil)),
+        (carbohydrate, format!("{} - {:.2}", Categories::Carbohydrates.to_cat_string(), carbohydrate)),
+        (unhealthy, format!("{} - {:.2}", Categories::Unhealthy.to_cat_string(), unhealthy)),
+        (hygiene, format!("{} - {:.2}", Categories::Hygiene.to_cat_string(), hygiene)),
+        (misc, format!("{} - {:.2}", Categories::Misc.to_cat_string(), misc)),
     };
     data
 }

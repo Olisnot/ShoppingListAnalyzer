@@ -21,7 +21,7 @@ impl ItemsViewer {
         let item_variants = self.database.borrow().get_items_by_item_id(self.items[item_id as usize].id);
 
         let name_box = Box::new(Orientation::Horizontal, 10);
-        let name_label = Label::new(Some("Name"));
+        let name_label = Label::new(Some("Name\t"));
         name_box.append(&name_label);
         let name_entry = Entry::new();
         name_entry.set_text(&item_variants[0].name);
@@ -29,7 +29,7 @@ impl ItemsViewer {
         content_area.append(&name_box);
 
         let category_box = Box::new(Orientation::Horizontal, 10);
-        let category_label = Label::new(Some("Category"));
+        let category_label = Label::new(Some("Category\t"));
         category_box.append(&category_label);
         let cat_combo = create_combo_box(item_variants[0].category.clone());
         category_box.append(&cat_combo);

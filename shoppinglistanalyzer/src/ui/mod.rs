@@ -28,7 +28,7 @@ pub fn build_ui(app: &Application) {
         .build();
 
     let main_box = gtk4::Box::new(Orientation::Vertical, 5);
-    
+
     let top_box = gtk4::Box::new(Orientation::Horizontal, 250);
     top_box.set_hexpand(true);
 
@@ -66,11 +66,20 @@ pub fn build_ui(app: &Application) {
 
     window.set_child(Some(&main_box));
 
-    let provider = CssProvider::new();
-    provider.load_from_path("./components/style.css");
+    let css = CssProvider::new();
+    css.load_from_data("
+        #info-panel-label { font-size: 24px; } 
+        #price-label { font-size: 20px; }
+        #bold-label { font-weight: bold; }
+        ");
 
-    let display = Display::default().unwrap();
-    gtk4::style_context_add_provider_for_display(&display, &provider, gtk4::STYLE_PROVIDER_PRIORITY_APPLICATION);
+    let display = Display::default().expect("Failed to get default display");
+    style_context_add_provider_for_display(
+        &display,
+        &css,
+        STYLE_PROVIDER_PRIORITY_APPLICATION,
+    );
+
 
     window.present();
 }

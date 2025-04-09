@@ -75,7 +75,7 @@ fn parse_data_from_lists_for_bar(lists: Rc<RefCell<Vec<List>>>) -> Vec<f64> {
 fn parse_lists_for_dates(lists: Rc<RefCell<Vec<List>>>) -> Vec<String> {
     let mut dates: Vec<String> = Vec::new();
     for list in lists.borrow().iter() {
-        dates.push(list.date.clone());
+        dates.push(format!("({}) {}", list.id, list.date.clone()));
     }
     dates
 }
@@ -128,14 +128,14 @@ fn parse_data_from_store_for_pie(store: Rc<RefCell<TreeStore>>) -> Vec<(f64, Str
         false 
     });
     let data: Vec<(f64, String)> = vec!{
-        (proteins, format!("{} - {}", Categories::Protein.to_cat_string(), proteins/2.0)),
-        (fruit_vegtabable, format!("{} - {}" ,Categories::FruitsVegetables.to_cat_string(), fruit_vegtabable/2.0)),
-        (dairy, format!("{} - {}", Categories::Dairy.to_cat_string(), dairy/2.0)),
-        (fat_oil, format!("{} - {}", Categories::FatsOils.to_cat_string(), fat_oil/2.0)),
-        (carbohydrate, format!("{} - {}", Categories::Carbohydrates.to_cat_string(), carbohydrate/2.0)),
-        (unhealthy, format!("{} - {}", Categories::Unhealthy.to_cat_string(), unhealthy/2.0)),
-        (hygiene, format!("{} - {}", Categories::Hygiene.to_cat_string(), hygiene/2.0)),
-        (misc, format!("{} - {}", Categories::Misc.to_cat_string(), misc/2.0)),
+        (proteins, format!("{} - {:.2}", Categories::Protein.to_cat_string(), proteins/2.0)),
+        (fruit_vegtabable, format!("{} - {:.2}" ,Categories::FruitsVegetables.to_cat_string(), fruit_vegtabable/2.0)),
+        (dairy, format!("{} - {:.2}", Categories::Dairy.to_cat_string(), dairy/2.0)),
+        (fat_oil, format!("{} - {:.2}", Categories::FatsOils.to_cat_string(), fat_oil/2.0)),
+        (carbohydrate, format!("{} - {:.2}", Categories::Carbohydrates.to_cat_string(), carbohydrate/2.0)),
+        (unhealthy, format!("{} - {:.2}", Categories::Unhealthy.to_cat_string(), unhealthy/2.0)),
+        (hygiene, format!("{} - {:.2}", Categories::Hygiene.to_cat_string(), hygiene/2.0)),
+        (misc, format!("{} - {:.2}", Categories::Misc.to_cat_string(), misc/2.0)),
     };
     data
 }

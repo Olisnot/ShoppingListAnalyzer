@@ -86,7 +86,7 @@ impl SingleList {
         if list_id == 0 {
             return;
         }
-        let items = self.database.borrow().get_items_by_id(list_id);
+        let items = self.database.borrow().get_items_by_list_id(list_id);
         let text_view = TextView::new();
         text_view.set_editable(false);
         for item in items.iter() {

@@ -51,6 +51,7 @@ impl Database {
                 Fiber INTEGER,
                 Proteins INTEGER,
                 Salt INTEGER,
+                ImgURL TEXT,
                 FOREIGN KEY (ItemId) REFERENCES items(ItemId)
             );
             ";
@@ -163,7 +164,7 @@ impl Database {
         while let Ok(State::Row) = statement.next() {
             let id = statement.read::<i64, _>("ListId").unwrap();
             let date = statement.read::<String, _>("Date").unwrap(); 
-            let items = self.get_items_by_id(id);
+            let items = self.get_items_by_list_id(id);
             lists.push(List::new(id, items, date));
         }
         lists
@@ -184,7 +185,30 @@ impl Database {
         list
     }
 
-    pub fn get_items_by_id(&self, list_id: i64) -> Vec<Item>{
+    pub fn get_items_by_item_id(&self, item_id: i64) -> Vec<ListItem> {
+        let mut list = Vec::new();
+        let query = "
+            SELECT i.*, l.Date, li.price, li.ListId
+            FROM listItems li
+            INNER JOIN items i ON i.ItemId = li.ItemId
+            INNER JOIN lists l ON l.ListId = li.ListId
+            WHERE li.ItemId = ?1;
+        ";
+        let mut statement = self.connection.as_ref().unwrap().prepare(query).unwrap();
+        statement.bind((1, item_id)).expect("failed to bind list ID in get items");
+        while let Ok(State::Row) = statement.next() {
+            let item_id = statement.read::<i64, _>("ItemId").unwrap();
+            let list_id = statement.read::<i64, _>("ListId").unwrap();
+            let name = statement.read::<String, _>("Name").unwrap();
+            let category = statement.read::<String, _>("Category").unwrap();
+            let date = statement.read::<String, _>("Date").unwrap();
+            let price = statement.read::<f64, _>("Price").unwrap();
+            list.push(ListItem::new(item_id, list_id, name, category, price, date));
+        }
+        list
+    }
+
+    pub fn get_items_by_list_id(&self, list_id: i64) -> Vec<Item> {
         let mut list = Vec::new();
         let query = "
             SELECT i.*, li.price

@@ -75,45 +75,29 @@ impl List {
         }
         total
     }
-    pub fn cost_per_category(&self) -> Vec<(f64, String)> {
-        let mut proteins = 0.0;
-        let mut fruit_vegtabable = 0.0;
-        let mut dairy = 0.0;
-        let mut fat_oil = 0.0;
-        let mut carbohydrate = 0.0;
-        let mut unhealthy = 0.0;
-        let mut hygiene = 0.0;
-        let mut misc = 0.0;
+}
 
-        for item in self.items.iter() {
-            if item.category == Categories::Protein.to_cat_string() {
-                proteins += item.price;
-            } else if item.category == Categories::FruitsVegetables.to_cat_string() {
-                fruit_vegtabable += item.price;
-            } else if item.category == Categories::Dairy.to_cat_string() {
-                dairy += item.price;
-            } else if item.category == Categories::FatsOils.to_cat_string() {
-                fat_oil += item.price;
-            } else if item.category == Categories::Carbohydrates.to_cat_string() {
-                carbohydrate += item.price;
-            } else if item.category == Categories::Unhealthy.to_cat_string() {
-                unhealthy += item.price;
-            } else if item.category == Categories::Hygiene.to_cat_string() {
-                hygiene += item.price;
-            } else if item.category == Categories::Misc.to_cat_string() || !item.category.is_empty() {
-                misc += item.price;
-            } 
+pub struct ListItem {
+    pub item_id: i64,
+    pub list_id: i64,
+    pub name: String,
+    pub category: String,
+    pub price: f64,
+    pub date: String,
+}
+impl ListItem {
+    pub fn new(item_id: i64, list_id: i64, name: String, category: String, price: f64, date: String) -> Self {
+        Self {
+            item_id,
+            list_id, 
+            name,
+            category,
+            price,
+            date,
         }
-        let category_totals: Vec<(f64, String)> = vec!{
-            (proteins, Categories::Protein.to_cat_string()),
-            (fruit_vegtabable, Categories::FruitsVegetables.to_cat_string()),
-            (dairy, Categories::Dairy.to_cat_string()),
-            (fat_oil, Categories::FatsOils.to_cat_string()),
-            (carbohydrate, Categories::Carbohydrates.to_cat_string()),
-            (unhealthy, Categories::Unhealthy.to_cat_string()),
-            (hygiene, Categories::Hygiene.to_cat_string()),
-            (misc, Categories::Misc.to_cat_string()),
-        };
-        category_totals
+    }
+
+    pub fn change_category(&mut self, cat: String) {
+        self.category = cat;
     }
 }

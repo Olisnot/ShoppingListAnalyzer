@@ -7,12 +7,12 @@ use crate::sqlite::Database;
 use crate::data_structures::*;
 use super::single_list_screen::SingleList;
 use super::multi_list_screen::MultiList;
-use super::nutrition_screen::Nutrition;
+use super::items_screen::ItemsViewer;
 
 pub fn show_add_list_dialog(parent: &ApplicationWindow, database: Rc<RefCell<Database>>, stack: Stack) {
     let parent_clone = parent.clone();
     let dialog = Dialog::builder()
-        .title("Dynamic Form")
+        .title("Add List")
         .transient_for(&parent_clone)
         .modal(true)
         .default_width(580)
@@ -250,7 +250,7 @@ fn refresh_stack(stack: &Stack, database: Rc<RefCell<Database>>) {
     let single_list_grid = single_list.borrow_mut().create_single_list_screen();
     let multi_list = MultiList::new(database.clone());
     let multi_list_screen = multi_list.borrow_mut().create_multi_list_screen();
-    let nutrition = Nutrition::new(database.clone());
+    let nutrition = ItemsViewer::new(database.clone());
     let nutrition_screen = nutrition.borrow_mut().create_nutrition_screen();
 
     let single_list_page = stack.add_named(&single_list_grid, Some("single_list"));

@@ -1,6 +1,6 @@
 mod single_list_screen;
 mod multi_list_screen;
-mod nutrition_screen;
+mod items_screen;
 mod add_list_dialog;
 
 use std::cell::RefCell;
@@ -11,7 +11,7 @@ use gtk4::{Application, ApplicationWindow, CssProvider};
 use gtk4::gdk::Display;
 use single_list_screen::SingleList;
 use multi_list_screen::MultiList;
-use nutrition_screen::Nutrition;
+use items_screen::ItemsViewer;
 use crate::sqlite::Database;
 
 pub fn build_ui(app: &Application) {
@@ -46,7 +46,7 @@ pub fn build_ui(app: &Application) {
     let single_list_grid = single_list.borrow_mut().create_single_list_screen();
     let multi_list = MultiList::new(database.clone());
     let multi_list_screen = multi_list.borrow_mut().create_multi_list_screen();
-    let nutrition = Nutrition::new(database.clone());
+    let nutrition = ItemsViewer::new(database.clone());
     let nutrition_screen = nutrition.borrow_mut().create_nutrition_screen();
 
     add_to_stack(&stack, &single_list_grid, &multi_list_screen, &nutrition_screen);
@@ -79,8 +79,8 @@ fn add_to_stack(stack: &Stack, single_list: &Grid, multi_list: &Box, nutrition: 
     let single_list_page = stack.add_named(single_list, Some("single_list"));
     single_list_page.set_title("Single List");
     let multi_list_page = stack.add_named(multi_list, Some("multi_list"));
-    multi_list_page.set_title("Multi List");
+    multi_list_page.set_title("Multiple Lists");
     let nutrition_page = stack.add_named(nutrition, Some("nutrition_screen"));
-    nutrition_page.set_title("Nutrition");
+    nutrition_page.set_title("Items");
 }
 

@@ -60,7 +60,6 @@ fn genereat_bar_chart(lists: Rc<RefCell<Vec<List>>>) -> Vec<u8> {
             .type_(AxisType::Value))
         .series(Bar::new().data(parse_data_from_lists_for_bar(Rc::clone(&lists))));
     let mut renderer = ImageRenderer::new(1680, 720);
-    println!("saved chart");
     renderer.render_format(ImageFormat::Png, &chart).unwrap()
 }
 
@@ -92,7 +91,6 @@ fn generate_pie_chart(store: Rc<RefCell<TreeStore>>) -> Vec<u8> {
             .label(Label::new().show(false))
             .data(parse_data_from_store_for_pie(store)));
     let mut renderer = ImageRenderer::new(1680, 720);
-    println!("saved chart");
     renderer.render_format(ImageFormat::Png, &chart).unwrap()
 }
 

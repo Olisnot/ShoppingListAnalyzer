@@ -35,7 +35,6 @@ fn generate_pie_chart(store: Rc<RefCell<ListStore>>) -> Vec<u8> {
             .label(Label::new().show(false))
             .data(parse_data_from_store(store)));
     let mut renderer = ImageRenderer::new(1120, 480);
-    println!("saved chart");
     renderer.render_format(ImageFormat::Png, &chart).unwrap()
 }
 

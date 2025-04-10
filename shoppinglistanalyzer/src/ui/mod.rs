@@ -16,9 +16,7 @@ use crate::sqlite::Database;
 
 pub fn build_ui(app: &Application) {
     let database = Rc::new(RefCell::new(Database::new()));
-    println!("starting db");
     database.borrow_mut().start_database();
-    println!("db started");
 
     let window = ApplicationWindow::builder()
         .application(app)

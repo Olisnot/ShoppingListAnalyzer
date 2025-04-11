@@ -75,7 +75,7 @@ impl MultiList {
         if let Some(calendar) = start_date_popover.child().and_downcast::<Calendar>() {
             calendar.connect_day_selected(move |cal| {
                 let date = cal.date();
-                start_date_selector_clone.set_label(&format!("{}-{}-{}", date.day_of_month(), date.month(), date.year()));
+                start_date_selector_clone.set_label(&format!("{:04}-{:02}-{:02}", date.year(), date.month(), date.day_of_month()));
                 start_date_popover_clone_2.popdown();
             });
         }
@@ -91,7 +91,7 @@ impl MultiList {
         if let Some(calendar) = end_date_popover.child().and_downcast::<Calendar>() {
             calendar.connect_day_selected(move |cal| {
                 let date = cal.date();
-                end_date_selector_clone.set_label(&format!("{}-{}-{}", date.day_of_month(), date.month(), date.year()));
+                end_date_selector_clone.set_label(&format!("{:04}-{:02}-{:02}", date.year(), date.month(), date.day_of_month()));
                 end_date_popover_clone_2.popdown();
             });
         }
@@ -116,7 +116,7 @@ impl MultiList {
 
     fn create_date_button(&self, calendar: &Calendar) -> Button {
         let date = calendar.date();
-        Button::with_label(&format!("{}-{}-{}", date.day_of_month(), date.month(), date.year()))
+        Button::with_label(&format!("{:04}-{:02}-{:02}", date.year(), date.month(), date.day_of_month()))
     }
 
     fn create_main_content(&mut self, start_date: &DateTime, end_date: &DateTime) {

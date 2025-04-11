@@ -44,4 +44,8 @@ impl ItemsViewer {
         self.main_content.as_ref().unwrap().set_position(200);
         self.create_list_view();
     }
+
+    pub fn refresh_items(&mut self) {
+        self.items = self.database.borrow().get_items();
+    }
 }

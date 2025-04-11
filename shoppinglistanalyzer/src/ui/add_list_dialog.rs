@@ -2,6 +2,7 @@ use std::rc::Rc;
 use std::cell::RefCell;
 use gtk4::*;
 use gtk4::prelude::*;
+use gtk4::glib::Type;
 use gtk4::ApplicationWindow;
 use crate::sqlite::Database;
 use crate::data_structures::*;
@@ -33,7 +34,7 @@ pub fn show_add_list_dialog(parent: &ApplicationWindow, database: Rc<RefCell<Dat
 
     let calendar = Calendar::new();
     let date = calendar.date();
-    date_button.borrow().set_label(&format!("{}-{}-{}", date.day_of_month(), date.month(), date.year()));
+    date_button.borrow().set_label(&format!("{:04}-{:02}-{:02}", date.year(), date.month(), date.day_of_month()));
 
     let popover = Popover::new();
     popover.set_has_arrow(false);
@@ -50,7 +51,7 @@ pub fn show_add_list_dialog(parent: &ApplicationWindow, database: Rc<RefCell<Dat
     if let Some(calendar) = popover.child().and_downcast::<Calendar>() {
         calendar.connect_day_selected(move |cal| {
             let date = cal.date();
-            date_button_clone.borrow().set_label(&format!("{}-{}-{}", date.day_of_month(), date.month(), date.year()));
+            date_button_clone.borrow().set_label(&format!("{:04}-{:02}-{:02}", date.year(), date.month(), date.day_of_month()));
             popover_clone2.popdown();
         });
     }
@@ -77,7 +78,14 @@ pub fn show_add_list_dialog(parent: &ApplicationWindow, database: Rc<RefCell<Dat
     let form_box_ref = Rc::new(RefCell::new(form_box));
     let dialog_clone = dialog.clone();
     
-    add_form_row(&form_box_ref, &dialog_clone);
+    let store = Rc::new(RefCell::new(ListStore::new(&[Type::STRING])));
+
+    let db_items = database.borrow().get_items(); 
+    for item in db_items.iter() {
+        store.borrow().set(&store.borrow().append(), &[(0, &item.name)]);
+    }
+
+    add_form_row(&form_box_ref, Rc::clone(&store), &dialog_clone);
     
     let add_button_container = Box::new(Orientation::Horizontal, 0);
     add_button_container.set_hexpand(true);
@@ -96,7 +104,7 @@ pub fn show_add_list_dialog(parent: &ApplicationWindow, database: Rc<RefCell<Dat
         let container = button.parent().unwrap();
         form_box_ref_clone.borrow().remove(&container);
 
-        add_form_row(&form_box_ref_clone, &dialog_clone);
+        add_form_row(&form_box_ref_clone, Rc::clone(&store), &dialog_clone);
 
         form_box_ref_clone.borrow().append(&container);
     });
@@ -121,7 +129,7 @@ pub fn show_add_list_dialog(parent: &ApplicationWindow, database: Rc<RefCell<Dat
     dialog.present();
 }
 
-fn add_form_row(form_box: &Rc<RefCell<Box>>, parent_dialog: &Dialog) {
+fn add_form_row(form_box: &Rc<RefCell<Box>>, store: Rc<RefCell<ListStore>>, parent_dialog: &Dialog) {
     let item_box = Rc::new(RefCell::new(Box::new(Orientation::Horizontal, 10)));
 
     let remove_button = Button::with_label("✕");
@@ -158,9 +166,17 @@ fn add_form_row(form_box: &Rc<RefCell<Box>>, parent_dialog: &Dialog) {
     
     let name_entry = Entry::new();
     let price_entry = Entry::new();
+
+    let completion = Rc::new(RefCell::new(EntryCompletion::new()));
+    completion.borrow().set_model(Some(&*store.borrow()));
+    completion.borrow().set_text_column(0);
+    completion.borrow().set_inline_completion(true);
+    completion.borrow().set_popup_completion(true);
     
     name_entry.set_hexpand(true);
     name_entry.set_placeholder_text(Some("Name"));
+    name_entry.set_completion(Some(&*completion.borrow()));
+
     price_entry.set_hexpand(true);
     price_entry.set_placeholder_text(Some("Price"));
     price_entry.set_input_purpose(InputPurpose::Number);
@@ -187,7 +203,6 @@ fn add_form_row(form_box: &Rc<RefCell<Box>>, parent_dialog: &Dialog) {
 }
 
 fn parse_add_database(database: Rc<RefCell<Database>>, form_box: &Box, date: String) {
-    println!("start add to db");
     let mut items: Vec<Item> = Vec::new();
 
     let mut name: String = String::new();

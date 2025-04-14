@@ -47,10 +47,6 @@ impl Item {
         print!("id: {},\nname: {}\ncat: {}\nprice: {}\n", self.id, self.name, self.category, self.price);
         println!("---------------------------------------");
     }
-
-    pub fn change_category(&mut self, cat: String) {
-        self.category = cat;
-    }
 }
 
 pub struct List {
@@ -95,9 +91,5 @@ impl ListItem {
             price,
             date,
         }
-    }
-
-    pub fn change_category(&mut self, cat: String) {
-        self.category = cat;
     }
 }

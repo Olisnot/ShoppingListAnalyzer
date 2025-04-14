@@ -45,7 +45,7 @@ pub fn build_ui(app: &Application) {
     let multi_list = MultiList::new(database.clone());
     let multi_list_screen = multi_list.borrow_mut().create_multi_list_screen();
     let nutrition = ItemsViewer::new(database.clone());
-    let nutrition_screen = nutrition.borrow_mut().create_nutrition_screen();
+    let nutrition_screen = nutrition.borrow_mut().create_items_screen();
 
     add_to_stack(&stack, &single_list_grid, &multi_list_screen, &nutrition_screen);
 

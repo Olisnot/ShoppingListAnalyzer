@@ -18,37 +18,28 @@ pub fn create_category_list(store: Rc<RefCell<ListStore>>) -> Box {
     let hygiene_tree = create_tree_view(Rc::clone(&store), Categories::Hygiene.to_cat_string());
     let misc_tree = create_tree_view(Rc::clone(&store), Categories::Misc.to_cat_string());
 
-    let protein_window = create_scrolled_window(&protein_tree);
-    let fruits_vegetables_window = create_scrolled_window(&fruits_vegetables_tree);
-    let dairy_window = create_scrolled_window(&dairy_tree);
-    let carbohydrates_window = create_scrolled_window(&carbohydrates_tree);
-    let fats_oils_window = create_scrolled_window(&fats_oils_tree);
-    let unhealthy_window = create_scrolled_window(&unhealthy_tree);
-    let hygiene_window = create_scrolled_window(&hygiene_tree);
-    let misc_window = create_scrolled_window(&misc_tree);
-
-    let proteins_page = stack.add_named(&protein_window, Some("Proteins"));
+    let proteins_page = stack.add_named(&protein_tree, Some("Proteins"));
     proteins_page.set_title("Proteins");
 
-    let fruits_vegetables_page = stack.add_named(&fruits_vegetables_window, Some("Fruits/Vegetables"));
+    let fruits_vegetables_page = stack.add_named(&fruits_vegetables_tree, Some("Fruits/Vegetables"));
     fruits_vegetables_page.set_title("Fruits/Vegetables");
 
-    let dairy_page = stack.add_named(&dairy_window, Some("Dairy"));
+    let dairy_page = stack.add_named(&dairy_tree, Some("Dairy"));
     dairy_page.set_title("Dairy");
 
-    let carbohydrates_page = stack.add_named(&carbohydrates_window, Some("Carbohydrates"));
+    let carbohydrates_page = stack.add_named(&carbohydrates_tree, Some("Carbohydrates"));
     carbohydrates_page.set_title("Carbohydrates");
 
-    let fats_oils_page = stack.add_named(&fats_oils_window, Some("Fats/Oils"));
+    let fats_oils_page = stack.add_named(&fats_oils_tree, Some("Fats/Oils"));
     fats_oils_page.set_title("Fats/Oils");
 
-    let unhealthy_page = stack.add_named(&unhealthy_window, Some("Unhealthy"));
+    let unhealthy_page = stack.add_named(&unhealthy_tree, Some("Unhealthy"));
     unhealthy_page.set_title("Unhealthy");
 
-    let hygiene_page = stack.add_named(&hygiene_window, Some("Hygiene"));
+    let hygiene_page = stack.add_named(&hygiene_tree, Some("Hygiene"));
     hygiene_page.set_title("Hygiene");
 
-    let misc_page = stack.add_named(&misc_window, Some("Miscellaneous"));
+    let misc_page = stack.add_named(&misc_tree, Some("Miscellaneous"));
     misc_page.set_title("Miscellaneous");
 
     let list_box = Box::new(Orientation::Vertical, 15);
@@ -104,11 +95,11 @@ fn create_tree_view(store: Rc<RefCell<ListStore>>, category_filter: String) -> B
             tree_view.append_column(&column);
         }
     }
-    tree_box.append(&tree_view);
+    tree_box.append(&create_scrolled_window(&tree_view));
     tree_box
 }
 
-fn create_scrolled_window(tree_view: &Box) -> ScrolledWindow {
+fn create_scrolled_window(tree_view: &TreeView) -> ScrolledWindow {
     let scrolled_window = ScrolledWindow::new();
     scrolled_window.set_vexpand(true);
     scrolled_window.set_hexpand(true);

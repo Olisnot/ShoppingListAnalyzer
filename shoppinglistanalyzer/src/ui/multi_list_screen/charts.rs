@@ -1,4 +1,4 @@
-use charming::{ component::{Axis, Legend}, element::{AxisType, Color, ItemStyle, AxisLabel, Label, Orient, TextStyle}, series::{Bar, Pie}, Chart, ImageFormat, ImageRenderer };
+use charming::{ component::{Axis, Legend, grid::Grid}, element::{AxisType, Color, ItemStyle, AxisLabel, Label, Orient, TextStyle}, series::{Bar, Pie}, Chart, ImageFormat, ImageRenderer };
 use gtk4::*;
 use gtk4::prelude::*;
 use gdk_pixbuf::{prelude::PixbufLoaderExt, PixbufLoader};
@@ -51,15 +51,16 @@ fn draw_pie_chart(store: Rc<RefCell<TreeStore>>) -> Box {
 
 fn genereat_bar_chart(lists: Rc<RefCell<Vec<List>>>) -> Vec<u8> {
     let chart = Chart::new()
+        .grid(Grid::new().bottom("800"))
         .x_axis(Axis::new()
             .type_(AxisType::Category)
-            .axis_label(AxisLabel::new().font_size(32))
+            .axis_label(AxisLabel::new().font_size(32).rotate(-90.0))
             .data(parse_lists_for_dates(Rc::clone(&lists))))
         .y_axis(Axis::new()
             .axis_label(AxisLabel::new().font_size(32))
             .type_(AxisType::Value))
         .series(Bar::new().data(parse_data_from_lists_for_bar(Rc::clone(&lists))));
-    let mut renderer = ImageRenderer::new(1680, 720);
+    let mut renderer = ImageRenderer::new(1680, 1680);
     renderer.render_format(ImageFormat::Png, &chart).unwrap()
 }
 

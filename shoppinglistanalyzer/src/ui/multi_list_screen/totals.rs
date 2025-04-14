@@ -6,6 +6,11 @@ pub fn create_totals(store: Rc<RefCell<TreeStore>>) -> Box{
     let tree_box = Box::new(Orientation::Vertical, 15);
     tree_box.set_vexpand(true);
     tree_box.set_hexpand(true);
+
+    let scrolled_window = ScrolledWindow::new();
+    scrolled_window.set_vexpand(true);
+    scrolled_window.set_hexpand(true);
+
     let tree_view = TreeView::with_model(&*store.borrow());
 
     let name_renderer = CellRendererText::new();
@@ -28,6 +33,7 @@ pub fn create_totals(store: Rc<RefCell<TreeStore>>) -> Box{
     price_column.pack_start(&price_renderer, true);
     price_column.add_attribute(&price_renderer, "text", 2);
     tree_view.append_column(&price_column);
-    tree_box.append(&tree_view);
+    scrolled_window.set_child(Some(&tree_view));
+    tree_box.append(&scrolled_window);
     tree_box
 }

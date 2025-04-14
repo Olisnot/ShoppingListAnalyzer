@@ -1,6 +1,7 @@
 mod total_list;
 mod category_list;
 mod pie_chart;
+mod edit_list_dialog;
 
 use std::rc::Rc;
 use std::cell::RefCell;
@@ -14,6 +15,7 @@ pub struct SingleList {
     pub category_list: Option<Box>,
     store: Rc<RefCell<ListStore>>,
     database: Rc<RefCell<Database>>,
+    active_list_id: i64,
     self_ref: Option<Rc<RefCell<SingleList>>>,
 }
 
@@ -26,10 +28,10 @@ impl SingleList {
             total_list: None,
             category_list: None,
             database: db,
+            active_list_id: 0,
             self_ref: None,
         }));
         list.borrow_mut().self_ref = Some(Rc::clone(&list));
-
         list
     }
 
@@ -42,14 +44,12 @@ impl SingleList {
         }
         let length: u32 = lists.len().try_into().unwrap();
 
-        let mut list_id: i64 = 0;
-
         if !lists.is_empty() {
             self.list_selector.set_active(Some(length-1));
-            list_id = extract_first_number(&self.list_selector.active_text().unwrap()).unwrap();
+            self.active_list_id = extract_first_number(&self.list_selector.active_text().unwrap()).unwrap();
         }
 
-        self.fill_items(list_id, Rc::clone(&self.store));
+        self.fill_items(Rc::clone(&self.store));
 
         self.total_list = Some(total_list::create_total_list(Rc::clone(&self.store))); 
         self.category_list = Some(category_list::create_category_list(Rc::clone(&self.store)));
@@ -57,15 +57,25 @@ impl SingleList {
         screen.attach(self.total_list.as_ref().unwrap(), 0, 1, 1, 1);
         screen.attach(self.category_list.as_ref().unwrap(), 0, 2, 2, 2);
 
-        let store_clone = Rc::clone(&self.store);
+        let edit_list_button = Button::with_label("Edit");
+        screen.attach(&edit_list_button, 1, 0, 1, 1);
+
         let self_rc = self.self_ref.as_ref().unwrap().clone();
+        let self_rc_clone = Rc::clone(&self_rc);
+        edit_list_button.connect_clicked(move |button| {
+            if let Some(window) = button.root().and_then(|w| w.downcast::<ApplicationWindow>().ok()) {
+                self_rc.borrow().show_edit_list_dialog(&window);
+            }
+        });
+
+        let store_clone = Rc::clone(&self.store);
         let screen_clone = screen.clone();
         self.list_selector.connect_changed(move |list|{
             store_clone.borrow_mut().clear();
             if list.active().is_some() {
-                let list_id = extract_first_number(&list.active_text().unwrap()).unwrap();
-                self_rc.borrow().fill_items(list_id, store_clone.clone());
-                self_rc.borrow_mut().refresh_ui(screen_clone.clone());
+                self_rc_clone.borrow_mut().active_list_id = extract_first_number(&list.active_text().unwrap()).unwrap();
+                self_rc_clone.borrow().fill_items(store_clone.clone());
+                self_rc_clone.borrow_mut().refresh_ui(screen_clone.clone());
             }
         });
         screen.attach(&self.list_selector, 0, 0, 1, 1);
@@ -82,11 +92,11 @@ impl SingleList {
         screen.attach(self.category_list.as_ref().unwrap(), 0, 2, 2, 2);
     }
 
-    fn fill_items(&self, list_id: i64, store: Rc<RefCell<ListStore>>) {
-        if list_id == 0 {
+    fn fill_items(&self, store: Rc<RefCell<ListStore>>) {
+        if self.active_list_id == 0 {
             return;
         }
-        let items = self.database.borrow().get_items_by_list_id(list_id);
+        let items = self.database.borrow().get_items_by_list_id(self.active_list_id);
         let text_view = TextView::new();
         text_view.set_editable(false);
         for item in items.iter() {
@@ -100,6 +110,7 @@ impl SingleList {
         store.borrow_mut().set_value(&iter, 1, &category.to_value());
         store.borrow_mut().set_value(&iter, 2, &price.to_value());
     }
+
 }
 
 fn extract_first_number(s: &str) -> Option<i64> {
@@ -114,3 +125,4 @@ fn extract_first_number(s: &str) -> Option<i64> {
         number_str.parse::<i64>().ok()
     }
 }
+

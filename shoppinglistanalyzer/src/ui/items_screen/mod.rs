@@ -32,7 +32,7 @@ impl ItemsViewer {
         item_screen
     }
 
-    pub fn create_nutrition_screen(&mut self) -> Box {
+    pub fn create_items_screen(&mut self) -> Box {
         let screen = Box::new(Orientation::Vertical, 10);
         self.create_main_content();
         screen.append(self.main_content.as_ref().unwrap());

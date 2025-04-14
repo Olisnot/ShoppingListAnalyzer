@@ -107,6 +107,9 @@ impl Database {
             }
     }
 
+    pub fn update_list(&self, list: &List) {
+    }
+
     pub fn insert_item(&self, item: &Item) {
         let item_rc = Rc::new(RefCell::new(item));
         let query = format!("
@@ -135,6 +138,21 @@ impl Database {
                 }
             }
             false
+    }
+
+    pub fn get_list(&self, list_id: i64) -> List {
+        let query = format!("
+            SELECT * FROM lists
+            WHERE ListId = {}
+            LIMIT 1;
+            ", list_id);
+        let mut statement = self.connection.as_ref().unwrap().prepare(query).unwrap();
+        let mut date: String = "".to_string();
+        let items = self.get_items_by_list_id(list_id);
+        while let Ok(State::Row) = statement.next() {
+            date = statement.read::<String, _>("Date").unwrap();
+        }
+        List::new(list_id, items, date)
     }
 
     pub fn get_lists_dates(&self) -> Vec<String> {

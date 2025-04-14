@@ -1,4 +1,4 @@
-mod dialogs;
+mod edit_item_dialog;
 mod chart;
 
 use gtk4::{*, prelude::*};
@@ -20,7 +20,6 @@ impl ItemsViewer {
         let button_box = Box::new(Orientation::Horizontal, 10);
         button_box.append(&edit_item_button);
 
-
         let self_rc = self.self_ref.as_ref().unwrap().clone();
         edit_item_button.connect_clicked(move |button| {
             if let Some(window) = button.root().and_then(|w| w.downcast::<ApplicationWindow>().ok()) {
@@ -28,11 +27,6 @@ impl ItemsViewer {
             }
 
         });
-
-        if self.items[item_id as usize].category != "Miscellaneous" {
-            let get_nutrition_button = Button::with_label("Get Nutrition");
-            button_box.append(&get_nutrition_button);
-        }
 
         header.pack_start(&button_box);
 

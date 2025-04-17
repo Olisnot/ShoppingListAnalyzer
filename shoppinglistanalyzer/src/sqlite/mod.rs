@@ -212,6 +212,7 @@ impl Database {
         let mut list = Vec::new();
         let query = "
             SELECT * FROM items
+            ORDER BY Name;
             ";
         let mut statement = self.connection.as_ref().unwrap().prepare(query).unwrap();
         while let Ok(State::Row) = statement.next() {

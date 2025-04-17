@@ -10,6 +10,7 @@ use gtk4::prelude::*;
 use crate::sqlite::Database;
 
 pub struct SingleList {
+    pub screen: Option<Grid>,
     pub list_selector: ComboBoxText,
     pub total_list: Option<Box>,
     pub category_list: Option<Box>,
@@ -23,6 +24,7 @@ impl SingleList {
     pub fn new(db: Rc<RefCell<Database>>) -> Rc<RefCell<Self>> {
         let store = Rc::new(RefCell::new(ListStore::new(&[String::static_type(), String::static_type(), f64::static_type()])));
         let list = Rc::new(RefCell::new(SingleList {
+            screen: None,
             store: Rc::clone(&store),
             list_selector: ComboBoxText::new(),
             total_list: None,
@@ -36,7 +38,7 @@ impl SingleList {
     }
 
     pub fn create_single_list_screen(&mut self) -> Grid {
-        let screen = Grid::new();
+        self.screen = Some(Grid::new());
 
         let lists = self.database.borrow().get_lists_dates();
         for list_date in lists.iter() {
@@ -54,11 +56,11 @@ impl SingleList {
         self.total_list = Some(total_list::create_total_list(Rc::clone(&self.store))); 
         self.category_list = Some(category_list::create_category_list(Rc::clone(&self.store)));
 
-        screen.attach(self.total_list.as_ref().unwrap(), 0, 1, 1, 1);
-        screen.attach(self.category_list.as_ref().unwrap(), 0, 2, 2, 2);
+        self.screen.as_ref().unwrap().attach(self.total_list.as_ref().unwrap(), 0, 1, 1, 1);
+        self.screen.as_ref().unwrap().attach(self.category_list.as_ref().unwrap(), 0, 2, 2, 2);
 
         let edit_list_button = Button::with_label("Edit");
-        screen.attach(&edit_list_button, 1, 0, 1, 1);
+        self.screen.as_ref().unwrap().attach(&edit_list_button, 1, 0, 1, 1);
 
         let self_rc = self.self_ref.as_ref().unwrap().clone();
         let self_rc_clone = Rc::clone(&self_rc);
@@ -69,27 +71,27 @@ impl SingleList {
         });
 
         let store_clone = Rc::clone(&self.store);
-        let screen_clone = screen.clone();
         self.list_selector.connect_changed(move |list|{
             store_clone.borrow_mut().clear();
             if list.active().is_some() {
                 self_rc_clone.borrow_mut().active_list_id = extract_first_number(&list.active_text().unwrap()).unwrap();
                 self_rc_clone.borrow().fill_items(store_clone.clone());
-                self_rc_clone.borrow_mut().refresh_ui(screen_clone.clone());
+                self_rc_clone.borrow_mut().refresh_ui();
             }
         });
-        screen.attach(&self.list_selector, 0, 0, 1, 1);
 
-        screen
+        self.screen.as_ref().unwrap().attach(&self.list_selector, 0, 0, 1, 1);
+
+        self.screen.as_ref().unwrap().clone()
     }
 
-    pub fn refresh_ui(&mut self, screen: Grid) {
-        screen.remove(self.total_list.as_ref().unwrap());
-        screen.remove(self.category_list.as_ref().unwrap());
+    pub fn refresh_ui(&mut self) {
+        self.screen.as_ref().unwrap().remove(self.total_list.as_ref().unwrap());
+        self.screen.as_ref().unwrap().remove(self.category_list.as_ref().unwrap());
         self.total_list = Some(total_list::create_total_list(Rc::clone(&self.store)));
         self.category_list = Some(category_list::create_category_list(Rc::clone(&self.store)));
-        screen.attach(self.total_list.as_ref().unwrap(), 0, 1, 1, 1);
-        screen.attach(self.category_list.as_ref().unwrap(), 0, 2, 2, 2);
+        self.screen.as_ref().unwrap().attach(self.total_list.as_ref().unwrap(), 0, 1, 1, 1);
+        self.screen.as_ref().unwrap().attach(self.category_list.as_ref().unwrap(), 0, 2, 2, 2);
     }
 
     fn fill_items(&self, store: Rc<RefCell<ListStore>>) {
@@ -125,4 +127,3 @@ fn extract_first_number(s: &str) -> Option<i64> {
         number_str.parse::<i64>().ok()
     }
 }
-

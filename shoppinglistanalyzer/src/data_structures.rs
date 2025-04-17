@@ -41,12 +41,6 @@ impl Item {
             price: m_price,
         }
     }
-
-    pub fn print_item(&self) {
-        println!("---------------------------------------");
-        print!("id: {},\nname: {}\ncat: {}\nprice: {}\n", self.id, self.name, self.category, self.price);
-        println!("---------------------------------------");
-    }
 }
 
 pub struct List {

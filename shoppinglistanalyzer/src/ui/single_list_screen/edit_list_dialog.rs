@@ -3,7 +3,7 @@ use gtk4::*;
 use gtk4::prelude::*;
 use gtk4::glib::Type;
 use super::SingleList;
-use crate::ui::add_list_dialog::{RowTuple, build_form_row};
+use crate::ui::add_list_dialog::{RowTuple, build_form_row, refresh_stack};
 use crate::data_structures::{List, Item};
 
 
@@ -139,7 +139,7 @@ impl SingleList {
         dialog.connect_response(move|dialog, response| {
             if response == ResponseType::Accept {
                 let date_string: String = date_button.borrow().label().unwrap().to_string();
-                self_rc.borrow().apply_edited_list(date_string, Rc::clone(&rows_clone_2));
+                self_rc.borrow_mut().apply_edited_list(date_string, Rc::clone(&rows_clone_2));
             }
             parent_clone.queue_draw();
             dialog.close();
@@ -159,15 +159,17 @@ impl SingleList {
         calendar.set_year(year.parse().unwrap());
     }
 
-    fn apply_edited_list(&self, date: String, rows: RowTuple) {
+    fn apply_edited_list(&mut self, date: String, rows: RowTuple) {
+        let stack = find_parent_stack(&Widget::from(self.list_selector.clone())).unwrap();
         let mut items: Vec<Item> = Vec::new();
 
         for (name, price, category) in rows.borrow_mut().iter() {
             items.push(Item::new(0, name.text().to_string(), category.active_text().unwrap().to_string(), price.text().to_string().parse().unwrap()));
         }
 
-        let the_list: List = List::new(self.active_list_id, items, date);
-        self.database.borrow().store_list(&the_list);
+        let the_list: List = List::new(self.active_list_id, items, date.clone());
+        self.database.borrow().update_list(&the_list);
+        refresh_stack(&stack, self.database.clone());
     }
 }
 
@@ -177,32 +179,7 @@ fn build_form_row_with_item(store: Rc<RefCell<ListStore>>, parent_dialog: &Dialo
     let remove_button = Button::with_label("✕");
     remove_button.set_tooltip_text(Some("Remove this item"));
 
-    let item_box_clone = item_box.clone();
-    let parent_dialog_clone = parent_dialog.clone();
 
-    remove_button.connect_clicked(move |_| {
-        let confirm_dialog = MessageDialog::builder()
-            .transient_for(&parent_dialog_clone)
-            .modal(true)
-            .message_type(MessageType::Question)
-            .buttons(ButtonsType::YesNo)
-            .text("Delete this item?")
-            .build();
-
-        confirm_dialog.set_default_response(ResponseType::No);
-
-        let item_box_inner = item_box_clone.clone();
-        confirm_dialog.connect_response(move |dialog, response| {
-            if response == ResponseType::Yes {
-                if let Some(parent) = item_box_inner.parent() {
-                    parent.downcast::<gtk4::Box>().unwrap().remove(&item_box_inner);
-                }
-            }
-            dialog.close();
-        });
-
-        confirm_dialog.present();
-    });
 
     let name_entry = Entry::new();
     let price_entry = Entry::new();
@@ -234,7 +211,41 @@ fn build_form_row_with_item(store: Rc<RefCell<ListStore>>, parent_dialog: &Dialo
     category_combo.append(Some("Miscellaneous"), "Miscellaneous");
     category_combo.set_active_id(Some(&item.category));
 
-    rows.borrow_mut().push((name_entry.clone(), price_entry.clone(), category_combo.clone()));
+    let item_box_clone = item_box.clone();
+    let parent_dialog_clone = parent_dialog.clone();
+    let rows_clone = Rc::clone(rows);
+
+    let row = (name_entry.clone(), price_entry.clone(), category_combo.clone());
+    let row_clone = row.clone();
+    remove_button.connect_clicked(move |_| {
+        let confirm_dialog = MessageDialog::builder()
+            .transient_for(&parent_dialog_clone)
+            .modal(true)
+            .message_type(MessageType::Question)
+            .buttons(ButtonsType::YesNo)
+            .text("Delete this item?")
+            .build();
+
+        confirm_dialog.set_default_response(ResponseType::No);
+        let rows_clone_2 = Rc::clone(&rows_clone);
+        let row_clone_2 = row_clone.clone();
+
+        let item_box_inner = item_box_clone.clone();
+        confirm_dialog.connect_response(move |dialog, response| {
+            if response == ResponseType::Yes {
+                if let Some(parent) = item_box_inner.parent() {
+                    let index = rows_clone_2.borrow_mut().iter().position(|x| *x == row_clone_2).unwrap();
+                    rows_clone_2.borrow_mut().remove(index);
+                    parent.downcast::<gtk4::Box>().unwrap().remove(&item_box_inner);
+                }
+            }
+            dialog.close();
+        });
+
+        confirm_dialog.present();
+    });
+
+    rows.borrow_mut().push(row);
 
     item_box.append(&remove_button);
     item_box.append(&name_entry);
@@ -242,4 +253,17 @@ fn build_form_row_with_item(store: Rc<RefCell<ListStore>>, parent_dialog: &Dialo
     item_box.append(&category_combo);
 
     item_box
+}
+
+fn find_parent_stack(widget: &Widget) -> Option<Stack> {
+    let mut current = widget.parent();
+
+    while let Some(parent) = current {
+        if let Ok(stack) = parent.clone().downcast::<Stack>() {
+            return Some(stack);
+        }
+        current = parent.parent();
+    }
+
+    None
 }

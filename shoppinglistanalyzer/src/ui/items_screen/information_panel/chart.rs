@@ -26,7 +26,6 @@ impl ItemsViewer {
     }
 
     fn genereat_line_chart(&self, item_id: i64) -> Vec<u8> {
-        println!("{}", item_id);
         let items = Rc::new(RefCell::new(self.database.borrow().get_items_by_item_id(item_id)));
         let chart = Chart::new()
             .grid(Grid::new().bottom("800"))

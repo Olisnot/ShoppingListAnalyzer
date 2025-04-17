@@ -11,7 +11,6 @@ impl ItemsViewer {
             items_strs.push(&item.name);
         }
         self.string_list = Some(StringList::new(&items_strs));
-        println!("{}", items_strs[0]);
         let factory = SignalListItemFactory::new();
         factory.connect_setup(move |_, list_item| {
             let label = Label::new(None);

@@ -74,31 +74,15 @@ impl Database {
             let mut list_id: i64 = 0;
             if let State::Row = list_id_statement.next().expect("Failed to execute find item ID query") {
                 list_id = list_id_statement.read(0).expect("Failed to read ID");
-                println!("Found list ID: {}", list_id);
                 drop(list_id_statement);
             } else {
                 println!("List id not found.");
             }
 
             for item in list.items.iter() {
-                item.print_item();
                 self.insert_item(item);
 
-                let item_id_query = "
-                    SELECT ItemId FROM items
-                    WHERE name = ?1
-                    LIMIT 1;
-                ";
-                let mut item_id_statement = self.connection.as_ref().unwrap().prepare(item_id_query).expect("Failed to prepare statement");
-                let item_name: &str = &item.name;
-                item_id_statement.bind((1, item_name)).expect("Failed to bind item id");
-
-                let mut item_id: i64 = 0;
-                if let State::Row = item_id_statement.next().expect("Failed to execute find item ID query") {
-                    item_id = item_id_statement.read(0).expect("Failed to read ID");
-                } else {
-                    println!("Item not found.");
-                }
+                let item_id: i64 = self.get_item_id(item.name.clone());
 
                 let list_item_pair_query = format!("
                     INSERT INTO listItems (ListId, ItemId, Price) VALUES ({}, {}, {});
@@ -108,17 +92,60 @@ impl Database {
     }
 
     pub fn update_list(&self, list: &List) {
+        // Update list date and total cost
+        let mut query = format!("
+            UPDATE lists
+            SET Date = \"{}\",
+                TotalCost = \"{}\"
+            WHERE ListId = {};
+            ", list.date, list.get_total_cost(), list.id);
+
+        let mut items:Vec<Item> = Vec::new();
+
+        // Add or update items
+        for item in list.items.iter() {
+            let item_rc = Rc::new(RefCell::new(item));
+            if !self.check_item_exists(Rc::clone(&item_rc)) {
+                let new_item_query = format!("
+                    INSERT INTO items (Name, Category) VALUES (\"{}\", \"{}\");
+                    ", item.name, item.category);
+                self.connection.as_ref().unwrap().execute(new_item_query).unwrap();
+                items.push(Item::new(self.get_item_id(item.name.clone()), item.name.clone(), item.category.clone(), item.price));
+            } else {
+                query.push_str(&format!("
+                        UPDATE items
+                        SET Name = \"{}\",
+                            Category = \"{}\"
+                        WHERE ItemId = {};
+                    ", item.name, item.category, item.id));
+                items.push(Item::new(self.get_item_id(item.name.clone()), item.name.clone(), item.category.clone(), item.price));
+            }
+        }
+        self.connection.as_ref().unwrap().execute(query).unwrap();
+
+        let clear_references_query = format!("
+            DELETE FROM listItems
+            WHERE ListId = {};
+            ", list.id);
+        self.connection.as_ref().unwrap().execute(clear_references_query).unwrap();
+
+        let mut references_query = String::new();
+        for item in items.iter() {
+            references_query.push_str(&format!("
+                    INSERT INTO listItems (ListId, ItemId, Price) VALUES (\"{}\", \"{}\", \"{}\");
+                    ", list.id, item.id, item.price));
+        }
+        self.connection.as_ref().unwrap().execute(references_query).unwrap();
     }
 
     pub fn insert_item(&self, item: &Item) {
         let item_rc = Rc::new(RefCell::new(item));
-        let query = format!("
-            INSERT INTO items (Name, Category) VALUES (\"{}\", \"{}\");
-            ", item.name, item.category);
-            if !self.check_item_exists(Rc::clone(&item_rc)) {
+        if !self.check_item_exists(Rc::clone(&item_rc)) {
+            let query = format!("
+                INSERT INTO items (Name, Category) VALUES (\"{}\", \"{}\");
+                ", item.name, item.category);
                 self.connection.as_ref().unwrap().execute(query).expect("query failed for inserting item");
-                println!("query has executed correctly");
-            }
+        } 
     }
 
     fn check_item_exists(&self, item: Rc<RefCell<&Item>>) -> bool {
@@ -128,14 +155,7 @@ impl Database {
             let mut statement = self.connection.as_ref().unwrap().prepare(query).expect("failed to prepare statement");
             if let State::Row = statement.next().expect("Failed to read") {
                 let result: i64 = statement.read(0).expect("Failed to read");
-                if result == 1 {
-                    println!("{} exists", item.borrow_mut().name);
-                    return true
-                }
-                else {
-                    println!("{} does not exist", item.borrow_mut().name);
-                    return false
-                }
+                return result == 1;
             }
             false
     }
@@ -146,13 +166,13 @@ impl Database {
             WHERE ListId = {}
             LIMIT 1;
             ", list_id);
-        let mut statement = self.connection.as_ref().unwrap().prepare(query).unwrap();
-        let mut date: String = "".to_string();
-        let items = self.get_items_by_list_id(list_id);
-        while let Ok(State::Row) = statement.next() {
-            date = statement.read::<String, _>("Date").unwrap();
-        }
-        List::new(list_id, items, date)
+            let mut statement = self.connection.as_ref().unwrap().prepare(query).unwrap();
+            let mut date: String = "".to_string();
+            let items = self.get_items_by_list_id(list_id);
+            while let Ok(State::Row) = statement.next() {
+                date = statement.read::<String, _>("Date").unwrap();
+            }
+            List::new(list_id, items, date)
     }
 
     pub fn get_lists_dates(&self) -> Vec<String> {
@@ -177,23 +197,22 @@ impl Database {
             SELECT * 
             FROM lists
             WHERE Date BETWEEN '{}' AND '{}';
-        ", start_string, end_string);
-        println!("{}", query);
-        let mut statement = self.connection.as_ref().unwrap().prepare(query).unwrap();
-        while let Ok(State::Row) = statement.next() {
-            let id = statement.read::<i64, _>("ListId").unwrap();
-            let date = statement.read::<String, _>("Date").unwrap(); 
-            let items = self.get_items_by_list_id(id);
-            lists.push(List::new(id, items, date));
-        }
-        lists
+            ", start_string, end_string);
+            let mut statement = self.connection.as_ref().unwrap().prepare(query).unwrap();
+            while let Ok(State::Row) = statement.next() {
+                let id = statement.read::<i64, _>("ListId").unwrap();
+                let date = statement.read::<String, _>("Date").unwrap(); 
+                let items = self.get_items_by_list_id(id);
+                lists.push(List::new(id, items, date));
+            }
+            lists
     }
 
     pub fn get_items(&self) -> Vec<Item> {
         let mut list = Vec::new();
         let query = "
             SELECT * FROM items
-        ";
+            ";
         let mut statement = self.connection.as_ref().unwrap().prepare(query).unwrap();
         while let Ok(State::Row) = statement.next() {
             let id = statement.read::<i64, _>("ItemId").unwrap();
@@ -211,7 +230,8 @@ impl Database {
             FROM listItems li
             INNER JOIN items i ON i.ItemId = li.ItemId
             INNER JOIN lists l ON l.ListId = li.ListId
-            WHERE li.ItemId = ?1;
+            WHERE li.ItemId = ?1
+            ORDER BY l.Date;
         ";
         let mut statement = self.connection.as_ref().unwrap().prepare(query).unwrap();
         statement.bind((1, item_id)).expect("failed to bind list ID in get items");
@@ -245,5 +265,22 @@ impl Database {
             list.push(Item::new(id, name, category, price));
         }
         list
+    }
+
+    fn get_item_id(&self, item_name: String) -> i64 {
+        let item_id_query = "
+            SELECT ItemId FROM items
+            WHERE name = ?1
+            LIMIT 1;
+        ";
+        let mut item_id_statement = self.connection.as_ref().unwrap().prepare(item_id_query).expect("Failed to prepare statement");
+        let item_name: &str = &item_name;
+        item_id_statement.bind((1, item_name)).expect("Failed to bind item id");
+
+        if let State::Row = item_id_statement.next().expect("Failed to execute find item ID query") {
+            item_id_statement.read(0).expect("Failed to read ID")
+        } else {
+            0
+        }
     }
 }

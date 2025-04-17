@@ -138,7 +138,6 @@ pub fn show_add_list_dialog(parent: &ApplicationWindow, database: Rc<RefCell<Dat
     let rows_clone_2 = Rc::clone(&rows);
     dialog.connect_response(move|dialog, response| {
         if response == ResponseType::Accept {
-            println!("Form submitted!");
             let date_string: String = date_button.borrow().label().unwrap().to_string();
             parse_add_database(Rc::clone(&database_clone), date_string, Rc::clone(&rows_clone_2));
             refresh_stack(&stack, Rc::clone(&database_clone));
@@ -156,32 +155,6 @@ pub fn build_form_row(store: Rc<RefCell<ListStore>>, parent_dialog: &Dialog, row
     let remove_button = Button::with_label("✕");
     remove_button.set_tooltip_text(Some("Remove this item"));
 
-    let item_box_clone = item_box.clone();
-    let parent_dialog_clone = parent_dialog.clone();
-
-    remove_button.connect_clicked(move |_| {
-        let confirm_dialog = MessageDialog::builder()
-            .transient_for(&parent_dialog_clone)
-            .modal(true)
-            .message_type(MessageType::Question)
-            .buttons(ButtonsType::YesNo)
-            .text("Delete this item?")
-            .build();
-
-        confirm_dialog.set_default_response(ResponseType::No);
-
-        let item_box_inner = item_box_clone.clone();
-        confirm_dialog.connect_response(move |dialog, response| {
-            if response == ResponseType::Yes {
-                if let Some(parent) = item_box_inner.parent() {
-                    parent.downcast::<gtk4::Box>().unwrap().remove(&item_box_inner);
-                }
-            }
-            dialog.close();
-        });
-
-        confirm_dialog.present();
-    });
 
     let name_entry = Entry::new();
     let price_entry = Entry::new();
@@ -210,7 +183,42 @@ pub fn build_form_row(store: Rc<RefCell<ListStore>>, parent_dialog: &Dialog, row
     category_combo.append(Some("Miscellaneous"), "Miscellaneous");
     category_combo.set_active(Some(0));
 
-    rows.borrow_mut().push((name_entry.clone(), price_entry.clone(), category_combo.clone()));
+    let item_box_clone = item_box.clone();
+    let parent_dialog_clone = parent_dialog.clone();
+    let rows_clone = Rc::clone(&rows);
+
+    let row = (name_entry.clone(), price_entry.clone(), category_combo.clone());
+    let row_clone = row.clone();
+    remove_button.connect_clicked(move |_| {
+        let confirm_dialog = MessageDialog::builder()
+            .transient_for(&parent_dialog_clone)
+            .modal(true)
+            .message_type(MessageType::Question)
+            .buttons(ButtonsType::YesNo)
+            .text("Delete this item?")
+            .build();
+
+        confirm_dialog.set_default_response(ResponseType::No);
+
+        let rows_clone_2 = Rc::clone(&rows_clone);
+        let row_clone_2 = row_clone.clone();
+
+        let item_box_inner = item_box_clone.clone();
+        confirm_dialog.connect_response(move |dialog, response| {
+            if response == ResponseType::Yes {
+                if let Some(parent) = item_box_inner.parent() {
+                    let index = rows_clone_2.borrow_mut().iter().position(|x| *x == row_clone_2).unwrap();
+                    rows_clone_2.borrow_mut().remove(index);
+                    parent.downcast::<gtk4::Box>().unwrap().remove(&item_box_inner);
+                }
+            }
+            dialog.close();
+        });
+
+        confirm_dialog.present();
+    });
+
+    rows.borrow_mut().push(row);
 
     item_box.append(&remove_button);
     item_box.append(&name_entry);
@@ -232,7 +240,7 @@ pub fn parse_add_database(database: Rc<RefCell<Database>>, date: String, rows: R
 
 }
 
-fn refresh_stack(stack: &Stack, database: Rc<RefCell<Database>>) {
+pub fn refresh_stack(stack: &Stack, database: Rc<RefCell<Database>>) {
     // Clear the stack
     while let Some(child) = stack.first_child() {
         stack.remove(&child);

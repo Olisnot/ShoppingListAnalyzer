@@ -6,6 +6,7 @@ use gtk4::glib::Type;
 use gtk4::ApplicationWindow;
 use crate::sqlite::Database;
 use crate::data_structures::*;
+use crate::categorization::categorize;
 use super::single_list_screen::SingleList;
 use super::multi_list_screen::MultiList;
 use super::items_screen::ItemsViewer;
@@ -88,7 +89,7 @@ pub fn show_add_list_dialog(parent: &ApplicationWindow, database: Rc<RefCell<Dat
 
     let rows: RowTuple = Rc::new(RefCell::new(Vec::new()));
 
-    let first_row = build_form_row(Rc::clone(&store), &dialog, Rc::clone(&rows));
+    let first_row = build_form_row(Rc::clone(&store), &dialog, Rc::clone(&rows), Rc::clone(&database));
     form_box_ref.borrow().append(&first_row);
     
     let add_button_container = Rc::new(Box::new(Orientation::Horizontal, 0));
@@ -102,6 +103,7 @@ pub fn show_add_list_dialog(parent: &ApplicationWindow, database: Rc<RefCell<Dat
 
     form_box_ref.borrow().append(&*add_button_container);
     
+    let db_clone = Rc::clone(&database);
     let form_box_clone = Rc::clone(&form_box_ref);
     let store_clone = Rc::clone(&store);
     let dialog_clone2 = dialog.clone();
@@ -109,7 +111,7 @@ pub fn show_add_list_dialog(parent: &ApplicationWindow, database: Rc<RefCell<Dat
 
     let rows_clone = Rc::clone(&rows);
     add_button.connect_clicked(move |_| {
-        let new_row = build_form_row(Rc::clone(&store_clone), &dialog_clone2, Rc::clone(&rows_clone));
+        let new_row = build_form_row(Rc::clone(&store_clone), &dialog_clone2, Rc::clone(&rows_clone), Rc::clone(&db_clone));
 
         let mut prev = None;
         let mut child = form_box_clone.borrow().first_child();
@@ -133,6 +135,14 @@ pub fn show_add_list_dialog(parent: &ApplicationWindow, database: Rc<RefCell<Dat
     main_container.append(&add_button);
 
     content_area.append(&main_container);
+
+    let categorization_button = Button::with_label("Categorize");
+    let rows_clone_3 = Rc::clone(&rows);
+    let db_clone = Rc::clone(&database);
+    categorization_button.connect_clicked(move |_| {
+        categorize(Rc::clone(&rows_clone_3), Rc::clone(&db_clone));
+    });
+    content_area.append(&categorization_button);
     
     let database_clone = Rc::clone(&database);
     let rows_clone_2 = Rc::clone(&rows);
@@ -145,11 +155,11 @@ pub fn show_add_list_dialog(parent: &ApplicationWindow, database: Rc<RefCell<Dat
         parent_clone.queue_draw();
         dialog.close();
     });
-    
     dialog.present();
+
 }
 
-pub fn build_form_row(store: Rc<RefCell<ListStore>>, parent_dialog: &Dialog, rows: RowTuple) -> gtk4::Box {
+pub fn build_form_row(store: Rc<RefCell<ListStore>>, parent_dialog: &Dialog, rows: RowTuple, db: Rc<RefCell<Database>>) -> gtk4::Box {
     let item_box = Box::new(Orientation::Horizontal, 10);
 
     let remove_button = Button::with_label("✕");
@@ -183,12 +193,27 @@ pub fn build_form_row(store: Rc<RefCell<ListStore>>, parent_dialog: &Dialog, row
     category_combo.append(Some("Miscellaneous"), "Miscellaneous");
     category_combo.set_active(Some(0));
 
+    let combo_clone = category_combo.clone();
+    let existing_items = db.borrow().get_items();
+    name_entry.connect_changed(move |text| {
+        for i in existing_items.iter() {
+            if text.text() == *i.name {
+                combo_clone.set_sensitive(false);
+                combo_clone.set_active_id(Some(&i.category));
+                break;
+            }
+            else {
+                combo_clone.set_sensitive(true);
+            }
+        }
+    });
+
     let item_box_clone = item_box.clone();
     let parent_dialog_clone = parent_dialog.clone();
     let rows_clone = Rc::clone(&rows);
 
-    let row = (name_entry.clone(), price_entry.clone(), category_combo.clone());
-    let row_clone = row.clone();
+    let row = Rc::new(RefCell::new((name_entry.clone(), price_entry.clone(), category_combo.clone())));
+    let row_clone = Rc::clone(&row);
     remove_button.connect_clicked(move |_| {
         let confirm_dialog = MessageDialog::builder()
             .transient_for(&parent_dialog_clone)
@@ -201,15 +226,17 @@ pub fn build_form_row(store: Rc<RefCell<ListStore>>, parent_dialog: &Dialog, row
         confirm_dialog.set_default_response(ResponseType::No);
 
         let rows_clone_2 = Rc::clone(&rows_clone);
-        let row_clone_2 = row_clone.clone();
+        let row_clone_2 = Rc::clone(&row_clone);
 
         let item_box_inner = item_box_clone.clone();
         confirm_dialog.connect_response(move |dialog, response| {
             if response == ResponseType::Yes {
                 if let Some(parent) = item_box_inner.parent() {
-                    let index = rows_clone_2.borrow_mut().iter().position(|x| *x == row_clone_2).unwrap();
-                    rows_clone_2.borrow_mut().remove(index);
-                    parent.downcast::<gtk4::Box>().unwrap().remove(&item_box_inner);
+                    let index = rows_clone_2.borrow_mut().iter().position(|x| *x == *row_clone_2.borrow());
+                    if let Some(index_unwraped) = index {
+                        rows_clone_2.borrow_mut().remove(index_unwraped);
+                        parent.downcast::<gtk4::Box>().unwrap().remove(&item_box_inner);
+                    }
                 }
             }
             dialog.close();
@@ -218,7 +245,7 @@ pub fn build_form_row(store: Rc<RefCell<ListStore>>, parent_dialog: &Dialog, row
         confirm_dialog.present();
     });
 
-    rows.borrow_mut().push(row);
+    rows.borrow_mut().push(row.borrow().clone());
 
     item_box.append(&remove_button);
     item_box.append(&name_entry);

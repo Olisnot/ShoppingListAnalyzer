@@ -4,6 +4,7 @@ use gtk4::prelude::*;
 use gtk4::glib::Type;
 use super::SingleList;
 use crate::ui::add_list_dialog::{RowTuple, build_form_row, refresh_stack};
+use crate::categorization::categorize;
 use crate::data_structures::{List, Item};
 
 
@@ -87,7 +88,7 @@ impl SingleList {
         }
 
         for item in list.items.iter() {
-            let row = build_form_row_with_item(Rc::clone(&store), &dialog, item, &Rc::clone(&rows));
+            let row = self.build_form_row_with_item(Rc::clone(&store), &dialog, item, &Rc::clone(&rows));
             form_box_ref.borrow().append(&row);
         }
 
@@ -104,12 +105,13 @@ impl SingleList {
 
         let form_box_clone = Rc::clone(&form_box_ref);
         let store_clone = Rc::clone(&store);
+        let db_clone = Rc::clone(&self.database);
         let rows_clone = Rc::clone(&rows);
         let dialog_clone2 = dialog.clone();
         let add_button_container = Rc::clone(&add_button_container);
 
         add_button.connect_clicked(move |_| {
-            let new_row = build_form_row(Rc::clone(&store_clone), &dialog_clone2, Rc::clone(&rows_clone));
+            let new_row = build_form_row(Rc::clone(&store_clone), &dialog_clone2, Rc::clone(&rows_clone), Rc::clone(&db_clone));
 
             let mut prev = None;
             let mut child = form_box_clone.borrow().first_child();
@@ -122,7 +124,6 @@ impl SingleList {
                 child = c.next_sibling();
             }
 
-
             if let Some(prev) = prev {
                 form_box_clone.borrow().insert_child_after(&new_row, Some(&prev));
             } else {
@@ -133,6 +134,52 @@ impl SingleList {
         main_container.append(&add_button);
 
         content_area.append(&main_container);
+
+        let buttons_grid = Grid::new();
+
+        let delete_list_button = Button::with_label("Delete List");
+        let db_clone = Rc::clone(&self.database);
+        let self_rc_1 = self.self_ref.as_ref().unwrap().clone();
+        let dialog_clone = dialog.clone();
+        delete_list_button.connect_clicked(move |_| {
+            let parent_dialog_clone = dialog_clone.clone();
+
+            let confirm_dialog = MessageDialog::builder()
+                .transient_for(&parent_dialog_clone)
+                .modal(true)
+                .message_type(MessageType::Question)
+                .buttons(ButtonsType::YesNo)
+                .text("The list will be PERMANENTLY deleted\nContinue?")
+                .build();
+
+            confirm_dialog.set_default_response(ResponseType::No);
+
+            let db_clone_2 = Rc::clone(&db_clone);
+            let dialog_clone_2 = dialog_clone.clone();
+            let self_rc_2 = Rc::clone(&self_rc_1);
+            confirm_dialog.connect_response(move |dialog, response| {
+                if response == ResponseType::Yes {
+                    db_clone_2.borrow().delete_list(self_rc_2.borrow().active_list_id);
+                    let stack = find_parent_stack(&Widget::from(self_rc_2.borrow().list_selector.clone())).unwrap();
+                    refresh_stack(&stack, Rc::clone(&db_clone_2));
+                    dialog_clone_2.close();
+                }
+                dialog.close();
+            });
+            confirm_dialog.present();
+        });
+        buttons_grid.attach(&delete_list_button, 2, 0, 1, 1);
+
+        let categorization_button = Button::with_label("Categorize");
+        categorization_button.set_hexpand(true);
+        let rows_clone_3 = Rc::clone(&rows);
+        let db_clone_2 = Rc::clone(&self.database);
+        categorization_button.connect_clicked(move |_| {
+            categorize(Rc::clone(&rows_clone_3), Rc::clone(&db_clone_2));
+        });
+        buttons_grid.attach(&categorization_button, 0, 0, 2, 1);
+
+        content_area.append(&buttons_grid);
 
         let rows_clone_2 = Rc::clone(&rows);
         let self_rc = self.self_ref.as_ref().unwrap().clone();
@@ -171,88 +218,102 @@ impl SingleList {
         self.database.borrow().update_list(&the_list);
         refresh_stack(&stack, self.database.clone());
     }
-}
 
-fn build_form_row_with_item(store: Rc<RefCell<ListStore>>, parent_dialog: &Dialog, item: &Item, rows: &RowTuple) -> gtk4::Box {
-    let item_box = Box::new(Orientation::Horizontal, 10);
+    fn build_form_row_with_item(&self, store: Rc<RefCell<ListStore>>, parent_dialog: &Dialog, item: &Item, rows: &RowTuple) -> gtk4::Box {
+        let item_box = Box::new(Orientation::Horizontal, 10);
 
-    let remove_button = Button::with_label("✕");
-    remove_button.set_tooltip_text(Some("Remove this item"));
+        let remove_button = Button::with_label("✕");
+        remove_button.set_tooltip_text(Some("Remove this item"));
 
+        let name_entry = Entry::new();
+        let price_entry = Entry::new();
+        let category_combo = ComboBoxText::new();
 
+        name_entry.set_hexpand(true);
+        name_entry.set_placeholder_text(Some("Name"));
+        name_entry.set_text(&item.name);
 
-    let name_entry = Entry::new();
-    let price_entry = Entry::new();
-    let category_combo = ComboBoxText::new();
+        price_entry.set_hexpand(true);
+        price_entry.set_placeholder_text(Some("Price"));
+        price_entry.set_text(&format!("{}", item.price));
+        price_entry.set_input_purpose(InputPurpose::Number);
 
-    name_entry.set_hexpand(true);
-    name_entry.set_placeholder_text(Some("Name"));
-    name_entry.set_text(&item.name);
+        let completion = EntryCompletion::new();
+        completion.set_model(Some(&*store.borrow()));
+        completion.set_text_column(0);
+        completion.set_inline_completion(true);
+        completion.set_popup_completion(true);
+        name_entry.set_completion(Some(&completion));
 
-    price_entry.set_hexpand(true);
-    price_entry.set_placeholder_text(Some("Price"));
-    price_entry.set_text(&format!("{}", item.price));
-    price_entry.set_input_purpose(InputPurpose::Number);
+        category_combo.append(Some("Protein"), "Protein");
+        category_combo.append(Some("Fruit/Vegetable"), "Fruit/Vegetable");
+        category_combo.append(Some("Dairy"), "Dairy");
+        category_combo.append(Some("Carbohydrate"), "Carbohydrate");
+        category_combo.append(Some("Fat/Oil"), "Fat/Oil");
+        category_combo.append(Some("Unhealthy"), "Unhealthy");
+        category_combo.append(Some("Hygiene"), "Hygiene");
+        category_combo.append(Some("Miscellaneous"), "Miscellaneous");
+        category_combo.set_active_id(Some(&item.category));
+        category_combo.set_sensitive(false);
 
-    let completion = EntryCompletion::new();
-    completion.set_model(Some(&*store.borrow()));
-    completion.set_text_column(0);
-    completion.set_inline_completion(true);
-    completion.set_popup_completion(true);
-    name_entry.set_completion(Some(&completion));
-
-    category_combo.append(Some("Protein"), "Protein");
-    category_combo.append(Some("Fruit/Vegetable"), "Fruit/Vegetable");
-    category_combo.append(Some("Dairy"), "Dairy");
-    category_combo.append(Some("Carbohydrate"), "Carbohydrate");
-    category_combo.append(Some("Fat/Oil"), "Fat/Oil");
-    category_combo.append(Some("Unhealthy"), "Unhealthy");
-    category_combo.append(Some("Hygiene"), "Hygiene");
-    category_combo.append(Some("Miscellaneous"), "Miscellaneous");
-    category_combo.set_active_id(Some(&item.category));
-
-    let item_box_clone = item_box.clone();
-    let parent_dialog_clone = parent_dialog.clone();
-    let rows_clone = Rc::clone(rows);
-
-    let row = (name_entry.clone(), price_entry.clone(), category_combo.clone());
-    let row_clone = row.clone();
-    remove_button.connect_clicked(move |_| {
-        let confirm_dialog = MessageDialog::builder()
-            .transient_for(&parent_dialog_clone)
-            .modal(true)
-            .message_type(MessageType::Question)
-            .buttons(ButtonsType::YesNo)
-            .text("Delete this item?")
-            .build();
-
-        confirm_dialog.set_default_response(ResponseType::No);
-        let rows_clone_2 = Rc::clone(&rows_clone);
-        let row_clone_2 = row_clone.clone();
-
-        let item_box_inner = item_box_clone.clone();
-        confirm_dialog.connect_response(move |dialog, response| {
-            if response == ResponseType::Yes {
-                if let Some(parent) = item_box_inner.parent() {
-                    let index = rows_clone_2.borrow_mut().iter().position(|x| *x == row_clone_2).unwrap();
-                    rows_clone_2.borrow_mut().remove(index);
-                    parent.downcast::<gtk4::Box>().unwrap().remove(&item_box_inner);
+        let combo_clone = category_combo.clone();
+        let existing_items = self.database.borrow().get_items();
+        name_entry.connect_changed(move |text| {
+            for i in existing_items.iter() {
+                if text.text() == *i.name {
+                    combo_clone.set_sensitive(false);
+                    combo_clone.set_active_id(Some(&i.category));
+                    break;
+                }
+                else {
+                    combo_clone.set_sensitive(true);
                 }
             }
-            dialog.close();
         });
 
-        confirm_dialog.present();
-    });
+        let item_box_clone = item_box.clone();
+        let parent_dialog_clone = parent_dialog.clone();
+        let rows_clone = Rc::clone(rows);
 
-    rows.borrow_mut().push(row);
+        let row = (name_entry.clone(), price_entry.clone(), category_combo.clone());
+        let row_clone = row.clone();
+        remove_button.connect_clicked(move |_| {
+            let confirm_dialog = MessageDialog::builder()
+                .transient_for(&parent_dialog_clone)
+                .modal(true)
+                .message_type(MessageType::Question)
+                .buttons(ButtonsType::YesNo)
+                .text("Delete this item?")
+                .build();
 
-    item_box.append(&remove_button);
-    item_box.append(&name_entry);
-    item_box.append(&price_entry);
-    item_box.append(&category_combo);
+            confirm_dialog.set_default_response(ResponseType::No);
+            let rows_clone_2 = Rc::clone(&rows_clone);
+            let row_clone_2 = row_clone.clone();
 
-    item_box
+            let item_box_inner = item_box_clone.clone();
+            confirm_dialog.connect_response(move |dialog, response| {
+                if response == ResponseType::Yes {
+                    if let Some(parent) = item_box_inner.parent() {
+                        let index = rows_clone_2.borrow_mut().iter().position(|x| *x == row_clone_2).unwrap();
+                        rows_clone_2.borrow_mut().remove(index);
+                        parent.downcast::<gtk4::Box>().unwrap().remove(&item_box_inner);
+                    }
+                }
+                dialog.close();
+            });
+
+            confirm_dialog.present();
+        });
+
+        rows.borrow_mut().push(row);
+
+        item_box.append(&remove_button);
+        item_box.append(&name_entry);
+        item_box.append(&price_entry);
+        item_box.append(&category_combo);
+
+        item_box
+    }
 }
 
 fn find_parent_stack(widget: &Widget) -> Option<Stack> {

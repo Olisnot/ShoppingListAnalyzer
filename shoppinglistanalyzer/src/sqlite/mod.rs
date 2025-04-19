@@ -138,6 +138,17 @@ impl Database {
         self.connection.as_ref().unwrap().execute(references_query).unwrap();
     }
 
+    pub fn delete_list(&self, list_id: i64) {
+        let query = format!("
+            DELETE FROM listItems
+            WHERE ListId = {};
+
+            DELETE FROM lists
+            WHERE ListId = {};
+            ", list_id, list_id);
+        self.connection.as_ref().unwrap().execute(query).unwrap();
+    }
+
     pub fn insert_item(&self, item: &Item) {
         let item_rc = Rc::new(RefCell::new(item));
         if !self.check_item_exists(Rc::clone(&item_rc)) {
@@ -212,6 +223,24 @@ impl Database {
         let mut list = Vec::new();
         let query = "
             SELECT * FROM items
+            ORDER BY Name;
+            ";
+        let mut statement = self.connection.as_ref().unwrap().prepare(query).unwrap();
+        while let Ok(State::Row) = statement.next() {
+            let id = statement.read::<i64, _>("ItemId").unwrap();
+            let name = statement.read::<String, _>("Name").unwrap();
+            let category = statement.read::<String, _>("Category").unwrap();
+            list.push(Item::new(id, name, category, 0.0));
+        }
+        list
+    }
+
+    pub fn get_items_in_lists(&self) -> Vec<Item> {
+        let mut list = Vec::new();
+        let query = "
+            SELECT DISTINCT i.*
+            FROM items i
+            INNER JOIN listItems l ON i.itemId = l.itemId
             ORDER BY Name;
             ";
         let mut statement = self.connection.as_ref().unwrap().prepare(query).unwrap();

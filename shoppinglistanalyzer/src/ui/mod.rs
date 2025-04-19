@@ -1,7 +1,7 @@
 mod single_list_screen;
 mod multi_list_screen;
 mod items_screen;
-mod add_list_dialog;
+pub mod add_list_dialog;
 
 use std::cell::RefCell;
 use std::rc::Rc;

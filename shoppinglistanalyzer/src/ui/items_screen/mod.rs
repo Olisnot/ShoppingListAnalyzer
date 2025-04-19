@@ -18,7 +18,7 @@ pub struct ItemsViewer {
 
 impl ItemsViewer {
     pub fn new(db: Rc<RefCell<Database>>) -> Rc<RefCell<Self>> {
-        let items_list = db.borrow().get_items();
+        let items_list = db.borrow().get_items_in_lists();
         let item_screen = Rc::new(RefCell::new(ItemsViewer {
             string_list: None,
             items: items_list,

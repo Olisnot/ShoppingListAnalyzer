@@ -1,6 +1,7 @@
 mod ui;
 mod sqlite;
 mod data_structures;
+mod categorization;
 
 use gtk4::prelude::*;
 use gtk4::{glib, Application};

@@ -1,8 +1,6 @@
 use std::{rc::Rc ,cell::RefCell};
-
 use gtk4::{* ,prelude::*};
 use crate::data_structures::ListItem;
-
 use super::super::ItemsViewer;
 
 impl ItemsViewer {

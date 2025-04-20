@@ -165,7 +165,6 @@ pub fn build_form_row(store: Rc<RefCell<ListStore>>, parent_dialog: &Dialog, row
     let remove_button = Button::with_label("✕");
     remove_button.set_tooltip_text(Some("Remove this item"));
 
-
     let name_entry = Entry::new();
     let price_entry = Entry::new();
     let category_combo = ComboBoxText::new();
@@ -175,6 +174,27 @@ pub fn build_form_row(store: Rc<RefCell<ListStore>>, parent_dialog: &Dialog, row
     price_entry.set_hexpand(true);
     price_entry.set_placeholder_text(Some("Price"));
     price_entry.set_input_purpose(InputPurpose::Number);
+
+    price_entry.connect_changed(|entry| {
+        let text = entry.text();
+        let mut filtered = String::new();
+        let mut dot_seen = false;
+
+        for char in text.chars() {
+            if char.is_ascii_digit() {
+                filtered.push(char);
+            } else if char == '.' && !dot_seen {
+                filtered.push(char);
+                dot_seen = true;
+            }
+        }
+
+        if text != filtered {
+            let pos = entry.position();
+            entry.set_text(&filtered);
+            entry.set_position(pos.saturating_sub(1));
+        }
+    });
 
     let completion = EntryCompletion::new();
     completion.set_model(Some(&*store.borrow()));

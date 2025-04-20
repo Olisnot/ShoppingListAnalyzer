@@ -98,7 +98,6 @@ pub async fn categorize_new_items_with_gemini(new_items: &RowTuple, categorized_
         }
     }
     raw_json_response = extract_json(&raw_json_response).to_string();
-    println!("{}", raw_json_response);
     let categories: CategorizedItems = serde_json::from_str(&raw_json_response)?;
 
     for (name, _price, category) in new_items.borrow().iter() {

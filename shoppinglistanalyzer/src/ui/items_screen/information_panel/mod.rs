@@ -10,7 +10,6 @@ impl ItemsViewer {
         let label = Label::new(Some(&self.items[item_id as usize].name));
         label.set_widget_name("info-panel-label");
 
-
         let header = HeaderBar::builder()
             .title_widget(&label)
             .show_title_buttons(false)

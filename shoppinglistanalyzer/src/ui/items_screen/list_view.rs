@@ -34,7 +34,9 @@ impl ItemsViewer {
 
         let list_view = ListView::new(Some(selection_model.borrow().clone()), Some(factory));
 
-        self.create_information_panel(0);
+        if !self.items.is_empty() {
+            self.create_information_panel(0);
+        }
 
         let string_list_copy = self.string_list.as_ref().unwrap().clone();
         let self_rc = self.self_ref.as_ref().unwrap().clone();

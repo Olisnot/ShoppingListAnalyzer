@@ -1,4 +1,4 @@
-use charming::{ component::Legend, element::{Color, ItemStyle, Label, Orient, TextStyle}, series::Pie, Chart, ImageFormat, ImageRenderer };
+use charming::{ component::Legend, element::{BorderType, Color, ItemStyle, Label, LineStyle, Orient, TextStyle}, series::Pie, Chart, ImageFormat, ImageRenderer };
 use gtk4::*;
 use gtk4::prelude::*;
 use gdk_pixbuf::{prelude::PixbufLoaderExt, PixbufLoader};

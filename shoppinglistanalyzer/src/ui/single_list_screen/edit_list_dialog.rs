@@ -14,7 +14,7 @@ impl SingleList {
 
         let parent_clone = parent.clone();
         let dialog = Dialog::builder()
-            .title("Add List")
+            .title("Edit List")
             .transient_for(&parent_clone)
             .modal(true)
             .default_width(580)

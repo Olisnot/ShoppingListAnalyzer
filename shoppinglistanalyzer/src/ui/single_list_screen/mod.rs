@@ -66,7 +66,9 @@ impl SingleList {
         let self_rc_clone = Rc::clone(&self_rc);
         edit_list_button.connect_clicked(move |button| {
             if let Some(window) = button.root().and_then(|w| w.downcast::<ApplicationWindow>().ok()) {
-                self_rc.borrow().show_edit_list_dialog(&window);
+                if self_rc.borrow().active_list_id != 0 {
+                    self_rc.borrow().show_edit_list_dialog(&window);
+                }
             }
         });
 

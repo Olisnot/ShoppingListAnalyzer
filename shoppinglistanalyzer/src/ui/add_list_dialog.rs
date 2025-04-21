@@ -297,13 +297,13 @@ pub fn refresh_stack(stack: &Stack, database: Rc<RefCell<Database>>) {
     let single_list_grid = single_list.borrow_mut().create_single_list_screen();
     let multi_list = MultiList::new(database.clone());
     let multi_list_screen = multi_list.borrow_mut().create_multi_list_screen();
-    let nutrition = ItemsViewer::new(database.clone());
-    let nutrition_screen = nutrition.borrow_mut().create_items_screen();
+    let items = ItemsViewer::new(database.clone());
+    let items_screen = items.borrow_mut().create_items_screen();
 
     let single_list_page = stack.add_named(&single_list_grid, Some("single_list"));
     single_list_page.set_title("Single List");
     let multi_list_page = stack.add_named(&multi_list_screen, Some("multi_list"));
     multi_list_page.set_title("Multi List");
-    let nutrition_page = stack.add_named(&nutrition_screen, Some("nutrition_screen"));
-    nutrition_page.set_title("Nutrition");
+    let items_screen_page = stack.add_named(&items_screen, Some("items_screen"));
+    items_screen_page.set_title("Items");
 }

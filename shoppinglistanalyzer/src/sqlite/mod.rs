@@ -40,20 +40,6 @@ impl Database {
                 Price REAL,
                 FOREIGN KEY (ListId) REFERENCES lists(ListId),
                 FOREIGN KEY (ItemId) REFERENCES items(ItemId));
-
-            CREATE TABLE nutrition (ItemId INTEGER PRIMARY KEY, 
-                Nutriscore TEXT,
-                Energy INTEGER,
-                Fat INTEGER,
-                SaturatedFats INTEGER,
-                Carbohydrates INTEGER,
-                Sugar INTEGER,
-                Fiber INTEGER,
-                Proteins INTEGER,
-                Salt INTEGER,
-                ImgURL TEXT,
-                FOREIGN KEY (ItemId) REFERENCES items(ItemId)
-            );
             ";
             self.connection.as_ref().unwrap().execute(query).unwrap();
         }

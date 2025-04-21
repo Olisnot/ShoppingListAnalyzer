@@ -1,4 +1,4 @@
-use charming::{ component::Legend, element::{BorderType, Color, ItemStyle, Label, LineStyle, Orient, TextStyle}, series::Pie, Chart, ImageFormat, ImageRenderer };
+use charming::{ component::Legend, element::{Color, ItemStyle, Label, Orient, TextStyle}, series::Pie, Chart, ImageFormat, ImageRenderer };
 use gtk4::*;
 use gtk4::prelude::*;
 use gdk_pixbuf::{prelude::PixbufLoaderExt, PixbufLoader};
@@ -27,7 +27,7 @@ fn generate_pie_chart(store: Rc<RefCell<ListStore>>) -> Vec<u8> {
     let chart = Chart::new()
         .legend(Legend::new().orient(Orient::Vertical).left("left")
             .text_style(TextStyle::new()
-                .font_size(20)
+                .font_size(30)
                 .color(Color::Value("White".to_string()))
             ))
         .series(Pie::new()

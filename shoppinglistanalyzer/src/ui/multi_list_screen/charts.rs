@@ -84,7 +84,7 @@ fn generate_pie_chart(store: Rc<RefCell<TreeStore>>) -> Vec<u8> {
     let chart = Chart::new()
         .legend(Legend::new().orient(Orient::Vertical).left("left")
             .text_style(TextStyle::new()
-                .font_size(32)
+                .font_size(42)
                 .color(Color::Value("White".to_string()))
             ))
         .series(Pie::new()

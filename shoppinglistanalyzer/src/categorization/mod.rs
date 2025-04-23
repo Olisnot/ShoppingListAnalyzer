@@ -6,6 +6,8 @@ use crate::sqlite::*;
 use crate::ui::add_list_dialog::RowTuple;
 use gemini::categorize_new_items_with_gemini;
 
+// Entry function for the categorization process responsible for splitting the item rows into new
+// and existing items then starting the async function
 pub fn categorize(mut items: RowTuple, db: Rc<RefCell<Database>>) {
     let db_items = db.borrow().get_items();
     let categorized_items: RowTuple = Rc::new(RefCell::new(Vec::new()));

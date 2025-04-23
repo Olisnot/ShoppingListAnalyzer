@@ -16,6 +16,8 @@ impl Database {
             connection: None
         }
     }
+
+    // gets the location of the binary and concatenates a path for the database
     fn get_db_path() -> String {
         let bpath: String = match  std::env::current_exe() {
             Ok(exe_path) => exe_path.display().to_string(),
@@ -25,6 +27,7 @@ impl Database {
         db_path
     }
 
+    // Checks to see if a database has been created and if not creates it with the needed tables
     pub fn start_database(&mut self) {
         let existing_db = Path::new(&self.path).exists();
         self.connection = Some(sqlite::open(self.path.clone()).unwrap());
@@ -45,6 +48,7 @@ impl Database {
         }
     }
 
+    // Takes a list object and stores it in the database
     pub fn store_list(&self, list: &List) {
         let query = format!("
             INSERT INTO lists (Date, TotalCost) VALUES (\"{}\", {});
@@ -77,6 +81,7 @@ impl Database {
             }
     }
 
+    // Update an existing list
     pub fn update_list(&self, list: &List) {
         // Update list date and total cost
         let mut query = format!("
@@ -124,6 +129,7 @@ impl Database {
         self.connection.as_ref().unwrap().execute(references_query).unwrap();
     }
 
+    // Deletes a list from the database
     pub fn delete_list(&self, list_id: i64) {
         let query = format!("
             DELETE FROM listItems
@@ -135,6 +141,7 @@ impl Database {
         self.connection.as_ref().unwrap().execute(query).unwrap();
     }
 
+    // Adds an item to the items table in the databese
     pub fn insert_item(&self, item: &Item) {
         let item_rc = Rc::new(RefCell::new(item));
         if !self.check_item_exists(Rc::clone(&item_rc)) {
@@ -145,6 +152,7 @@ impl Database {
         } 
     }
 
+    // Determines the existence of an item name in the database
     fn check_item_exists(&self, item: Rc<RefCell<&Item>>) -> bool {
         let query = format!("
             SELECT EXISTS(SELECT Name FROM items WHERE Name = \"{}\");
@@ -157,6 +165,7 @@ impl Database {
             false
     }
 
+    // Gets the list corresponding to a given list id
     pub fn get_list(&self, list_id: i64) -> List {
         let query = format!("
             SELECT * FROM lists
@@ -172,6 +181,7 @@ impl Database {
             List::new(list_id, items, date)
     }
 
+    // Gets the date field of each list stored in the database
     pub fn get_lists_dates(&self) -> Vec<String> {
         let mut list = Vec::new();
         let query = "
@@ -186,6 +196,7 @@ impl Database {
         list
     }
 
+    // Gets lists whose date field falls between the provided dates
     pub fn get_lists_in_dates_range(&self, start_date: &DateTime, end_date: &DateTime) -> Vec<List> {
         let mut lists: Vec<List> = Vec::new();
         let start_string: &str = &format!("{:04}-{:02}-{:02}", start_date.year(), start_date.month(), start_date.day_of_month());
@@ -205,6 +216,7 @@ impl Database {
             lists
     }
 
+    // Retrives all items from the database
     pub fn get_items(&self) -> Vec<Item> {
         let mut list = Vec::new();
         let query = "
@@ -221,6 +233,7 @@ impl Database {
         list
     }
 
+    // Retrives all items that correspond to a list in the database
     pub fn get_items_in_lists(&self) -> Vec<Item> {
         let mut list = Vec::new();
         let query = "
@@ -239,6 +252,7 @@ impl Database {
         list
     }
 
+    // Gets every variant of an item present in the lists
     pub fn get_items_by_item_id(&self, item_id: i64) -> Vec<ListItem> {
         let mut list = Vec::new();
         let query = "
@@ -263,6 +277,7 @@ impl Database {
         list
     }
 
+    // Retrives items corresponding to a list
     pub fn get_items_by_list_id(&self, list_id: i64) -> Vec<Item> {
         let mut list = Vec::new();
         let query = "
@@ -283,6 +298,7 @@ impl Database {
         list
     }
 
+    // Returns the item id for a given item name in the database
     fn get_item_id(&self, item_name: String) -> i64 {
         let item_id_query = "
             SELECT ItemId FROM items

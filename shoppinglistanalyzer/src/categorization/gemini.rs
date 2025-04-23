@@ -60,6 +60,8 @@ struct CategorizedItems {
 }
 
 
+// Serializes a request object to json containing the gemini prompt and makes the request. Then
+// receiving the response and processing it
 pub async fn categorize_new_items_with_gemini(new_items: &RowTuple, categorized_items: RowTuple) -> Result<RowTuple, Box<dyn std::error::Error>> {
     if new_items.borrow().len() == 0 {
         return Ok(categorized_items);

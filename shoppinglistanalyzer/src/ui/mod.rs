@@ -26,6 +26,7 @@ use multi_list_screen::MultiList;
 use items_screen::ItemsViewer;
 use crate::sqlite::Database;
 
+// Entry function for building the user interface
 pub fn build_ui(app: &Application) {
     let database = Rc::new(RefCell::new(Database::new()));
     database.borrow_mut().start_database();

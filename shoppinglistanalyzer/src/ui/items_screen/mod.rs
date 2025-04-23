@@ -46,6 +46,6 @@ impl ItemsViewer {
     }
 
     pub fn refresh_items(&mut self) {
-        self.items = self.database.borrow().get_items();
+        self.items = self.database.borrow().get_items_in_lists();
     }
 }

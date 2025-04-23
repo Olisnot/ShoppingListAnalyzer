@@ -240,6 +240,7 @@ impl Database {
     }
 
     pub fn get_items_by_item_id(&self, item_id: i64) -> Vec<ListItem> {
+        println!("get item id: {}", item_id);
         let mut list = Vec::new();
         let query = "
             SELECT i.*, l.Date, li.price, li.ListId

@@ -1,9 +1,30 @@
 use std::rc::Rc;
 use std::cell::RefCell;
-use gtk4::*;
-use gtk4::prelude::*;
-use gtk4::glib::Type;
-use gtk4::ApplicationWindow;
+
+use gtk4::{
+    ApplicationWindow,
+    prelude::{GtkWindowExt, DialogExt, PopoverExt, WidgetExt, EditableExt, BoxExt, ButtonExt, ComboBoxExt, ComboBoxExtManual, EntryExt, Cast, CastNone},
+    Box,
+    ButtonsType,
+    MessageType,
+    MessageDialog,
+    EntryCompletion,
+    InputPurpose,
+    ListStore,
+    PolicyType,
+    ScrolledWindow,
+    Calendar,
+    Button,
+    Popover,
+    Orientation,
+    ResponseType,
+    Dialog,
+    Stack,
+    Entry,
+    ComboBoxText,
+    glib::Type
+};
+
 use crate::sqlite::Database;
 use crate::data_structures::*;
 use crate::categorization::categorize;

@@ -58,9 +58,13 @@ impl MultiList {
         end_date_popover.set_child(Some(&self.end_date_calendar));
 
         let date_selectors_box = Box::new(Orientation::Horizontal, 15);
+        let start_label = Label::new(Some("Start:"));
         self.start_date_selector = Some(self.create_date_button(&self.start_date_calendar));
+        let end_label = Label::new(Some("End:"));
         self.end_date_selector = Some(self.create_date_button(&self.end_date_calendar));
+        date_selectors_box.append(&start_label);
         date_selectors_box.append(self.start_date_selector.as_ref().unwrap());
+        date_selectors_box.append(&end_label);
         date_selectors_box.append(self.end_date_selector.as_ref().unwrap());
         screen.append(&date_selectors_box);
 

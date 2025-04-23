@@ -1,4 +1,4 @@
-use charming::{ component::{Axis, grid::Grid}, element::{AxisType, AxisLabel}, series::Line, Chart, ImageFormat, ImageRenderer };
+use charming::{ component::{Axis, grid::Grid}, element::{AxisType, AxisLabel, TextStyle}, series::Line, Chart, ImageFormat, ImageRenderer };
 use gtk4::*;
 use gtk4::prelude::*;
 use gdk_pixbuf::{prelude::PixbufLoaderExt, PixbufLoader};
@@ -30,10 +30,14 @@ impl ItemsViewer {
         let chart = Chart::new()
             .grid(Grid::new().bottom("800"))
             .x_axis(Axis::new()
+                .name("Time".to_string())
+                .name_text_style(TextStyle::new().font_size(40))
                 .type_(AxisType::Category)
                 .axis_label(AxisLabel::new().font_size(32).rotate(-90.0))
                 .data(self.parse_items_for_dates(Rc::clone(&items))))
             .y_axis(Axis::new()
+                .name("Price".to_string())
+                .name_text_style(TextStyle::new().font_size(40))
                 .axis_label(AxisLabel::new().font_size(32))
                 .type_(AxisType::Value))
             .series(Line::new().data(self.parse_data_from_items_for_line(Rc::clone(&items))));

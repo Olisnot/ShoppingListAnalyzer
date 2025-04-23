@@ -74,6 +74,8 @@ impl ItemsViewer {
                     \n", prices.borrow()[i].text(), variant.list_id, variant.item_id);
                     query.push_str(&temp_query);
             }
+
+        println!("Query: \n {}", query);
             self.database.borrow().connection.as_ref().unwrap().execute(query).unwrap();
     }
 }

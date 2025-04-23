@@ -5,9 +5,21 @@ pub mod add_list_dialog;
 
 use std::cell::RefCell;
 use std::rc::Rc;
-use gtk4::*;
-use gtk4::prelude::*;
-use gtk4::{Application, ApplicationWindow, CssProvider};
+use gtk4::{
+    Application,
+    STYLE_PROVIDER_PRIORITY_APPLICATION,
+    style_context_add_provider_for_display,
+    Orientation,
+    Grid,
+    Stack,
+    StackSwitcher,
+    Box,
+    Button,
+    StringList,
+    ApplicationWindow,
+    prelude::{GtkWindowExt, BoxExt, ButtonExt, WidgetExt},
+    CssProvider};
+
 use gtk4::gdk::Display;
 use single_list_screen::SingleList;
 use multi_list_screen::MultiList;

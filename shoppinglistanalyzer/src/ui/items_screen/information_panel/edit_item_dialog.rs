@@ -37,6 +37,21 @@ impl ItemsViewer {
         category_box.append(&*cat_combo.borrow());
         content_area.append(&category_box);
 
+        let combo_clone = cat_combo.clone();
+        let existing_items = self.database.borrow().get_items();
+        name_entry.borrow().connect_changed(move |text| {
+            for i in existing_items.iter() {
+                if text.text() == *i.name {
+                    combo_clone.borrow().set_sensitive(false);
+                    combo_clone.borrow().set_active_id(Some(&i.category));
+                    break;
+                }
+                else {
+                    combo_clone.borrow().set_sensitive(true);
+                }
+            }
+        });
+
         let prices_entries: Rc<RefCell<Vec<Entry>>> = Rc::new(RefCell::new(Vec::new()));
         let prices_window = create_prices_scrolled_window(Rc::clone(&item_variants), Rc::clone(&prices_entries));
         content_area.append(&*prices_window.borrow());
@@ -54,29 +69,53 @@ impl ItemsViewer {
     }
 
     fn save_edited_item(&self, variants: Rc<RefCell<Vec<ListItem>>>, name: Rc<RefCell<Entry>>, category: Rc<RefCell<ComboBoxText>>, prices: Rc<RefCell<Vec<Entry>>>) {
+        let items = self.database.borrow().get_items();
+        let mut existing_item = false;
+
         let new_name = name.borrow().text();
         let new_category = category.borrow().active_text().unwrap();
         let item_id = variants.borrow()[0].item_id;
+        let mut new_item_id = 0;
 
-        let mut query = format!("
-            UPDATE items
-            SET Name = \"{}\",
-            Category = \"{}\"
-            WHERE ItemId = {};
+        for item in items.iter() {
+            if item.name == new_name {
+                existing_item = true;
+                new_item_id = item.id;
+            }
+        }
 
-            ", new_name, new_category, item_id);
+        if !existing_item {
+            println!("DOES NOT EXIST!!!!!");
+            let mut query = format!("
+                UPDATE items
+                SET Name = \"{}\",
+                Category = \"{}\"
+                WHERE ItemId = {};
 
+                ", new_name, new_category, item_id);
+
+                for (i, variant) in variants.borrow_mut().iter().enumerate() {
+                    let temp_query = format!("\n
+                        UPDATE listItems
+                        SET Price = {}
+                        WHERE ListId = {} AND ItemId = {};
+                        \n", prices.borrow()[i].text(), variant.list_id, variant.item_id);
+                        query.push_str(&temp_query);
+                }
+                self.database.borrow().connection.as_ref().unwrap().execute(query).unwrap();
+        } else {
+            println!("EXISTS!!!!!");
+            let mut query = String::new();
             for (i, variant) in variants.borrow_mut().iter().enumerate() {
                 let temp_query = format!("\n
                     UPDATE listItems
-                    SET Price = {}
+                    SET ItemId = {}, Price = {}
                     WHERE ListId = {} AND ItemId = {};
-                    \n", prices.borrow()[i].text(), variant.list_id, variant.item_id);
+                    \n", new_item_id, prices.borrow()[i].text(), variant.list_id, variant.item_id);
                     query.push_str(&temp_query);
             }
-
-        println!("Query: \n {}", query);
             self.database.borrow().connection.as_ref().unwrap().execute(query).unwrap();
+        }
     }
 }
 

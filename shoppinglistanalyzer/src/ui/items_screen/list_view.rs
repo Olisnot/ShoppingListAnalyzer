@@ -46,7 +46,6 @@ impl ItemsViewer {
             if pos != gtk4::INVALID_LIST_POSITION {
                 if let Some(obj) = string_list_copy.item(pos) {
                     if obj.downcast::<StringObject>().is_ok() {
-                        println!("pos: {}", pos);
                         self_rc.borrow_mut().create_information_panel(pos.into());
                     }
                 }

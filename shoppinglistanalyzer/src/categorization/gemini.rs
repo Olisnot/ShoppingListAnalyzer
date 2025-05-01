@@ -70,7 +70,7 @@ pub async fn categorize_new_items_with_gemini(new_items: &RowTuple, categorized_
     let client = Client::new();
     let endpoint = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=GEMINI_API_KEY";
 
-    let mut body_str = "Given the following categories: Protein, Fruit/Vegetable, Dairy, Carbohydrate, Fat/Oil, Unhealthy, Hygiene, Miscellaneous. Categorize these items in the context of nutrition and return the result as JSON with each category being an array, include nothing else except the rusulting json in the response and if there are no items given to categorize then return the empty arrays: ".to_string();
+    let mut body_str = "Given the following categories: Protein, Fruit/Vegetable, Dairy, Carbohydrate, Fat/Oil, Unhealthy, Hygiene, Miscellaneous. Categorize these items in the context of nutrition and return the result as JSON with each category being an array, include nothing else except the resulting json in the response and if there are no items given to categorize then return the empty arrays: ".to_string();
 
     for (name, _price, _category) in new_items.borrow_mut().iter() {
         body_str.push_str(&format!("{}, ", name.text()));

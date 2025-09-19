@@ -1,8 +1,10 @@
+use crate::ui::add_list_dialog::RowTuple;
+use dotenvy::dotenv;
 use gtk4::prelude::{ComboBoxExt, EditableExt};
 use reqwest::*;
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
+use std::env;
 use std::result::Result;
-use crate::ui::add_list_dialog::RowTuple;
 
 #[derive(Serialize)]
 struct Content {
@@ -59,16 +61,21 @@ struct CategorizedItems {
     miscellaneous: Vec<String>,
 }
 
-
 // Serializes a request object to json containing the gemini prompt and makes the request. Then
 // receiving the response and processing it
-pub async fn categorize_new_items_with_gemini(new_items: &RowTuple, categorized_items: RowTuple) -> Result<RowTuple, Box<dyn std::error::Error>> {
+pub async fn categorize_new_items_with_gemini(
+    new_items: &RowTuple,
+    categorized_items: RowTuple,
+) -> Result<RowTuple, Box<dyn std::error::Error>> {
     if new_items.borrow().len() == 0 {
         return Ok(categorized_items);
     }
 
+    dotenv().ok();
+    let gemini_api_key = env::var("GEMINI_API_KEY").expect("GEMINI_API_KEY not set");
+
     let client = Client::new();
-    let endpoint = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=GEMINI_API_KEY";
+    let endpoint = format!("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={}", gemini_api_key);
 
     let mut body_str = "Given the following categories: Protein, Fruit/Vegetable, Dairy, Carbohydrate, Fat/Oil, Unhealthy, Hygiene, Miscellaneous. Categorize these items in the context of nutrition and return the result as JSON with each category being an array, include nothing else except the resulting json in the response and if there are no items given to categorize then return the empty arrays: ".to_string();
 
@@ -78,14 +85,12 @@ pub async fn categorize_new_items_with_gemini(new_items: &RowTuple, categorized_
 
     let body = RequestBody {
         contents: vec![Content {
-            parts: vec![Part {
-                text: body_str,
-            }],
+            parts: vec![Part { text: body_str }],
         }],
     };
 
-
-    let response = client.post(endpoint)
+    let response = client
+        .post(endpoint)
         .json(&body)
         .send()
         .await?
@@ -194,4 +199,3 @@ fn extract_json(raw: &str) -> &str {
         .trim_end_matches("```")
         .trim()
 }
-
